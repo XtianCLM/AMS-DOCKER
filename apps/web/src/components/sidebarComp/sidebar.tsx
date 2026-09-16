@@ -7,6 +7,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import {
+  useImportClientsDbf,
+} from "@/hooks/clients/useClients";
+
+import SweetAlert from "@/components/modal/Swal";
+
+import axios from "axios";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MENU_SECTIONS } from "./menu.config";
@@ -37,8 +45,100 @@ export default function Sidebar({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [newTransactionCount, setNewTransactionCount] = useState(0);
   const [branchReactivationResultCount,setBranchReactivationResultCount] = useState(0);
+  const [newPromotionCount,setNewPromotionCount] = useState(0);
 
-  
+
+  // dbf Upload 
+  const dbfInputRef =
+    useRef<HTMLInputElement | null>(
+      null
+    );
+
+  const {
+    mutate: importDbf,
+    isPending: isImportingDbf,
+  } = useImportClientsDbf();
+
+  const handleDbfFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (
+      !file.name
+        .toLowerCase()
+        .endsWith(".dbf")
+    ) {
+      SweetAlert.errorAlert(
+        "Invalid File",
+        "Please select a DBF file."
+      );
+
+      event.target.value = "";
+
+      return;
+    }
+
+    SweetAlert.confirmationAlert(
+      "Initialize SSP",
+      `Import client data from ${file.name}?`,
+      () => {
+        importDbf(file, {
+          onSuccess: (
+            result
+          ) => {
+            SweetAlert.successAlertFunction(
+              "SSP Initialized",
+              `${result.insertedRecords} client records were imported successfully.`,
+              () => {
+                router.push(
+                  "/?initialize=true"
+                );
+              },
+              () => {
+                router.push(
+                  "/?initialize=true"
+                );
+              }
+            );
+          },
+
+          onError: (
+            error
+          ) => {
+            console.error(
+              "DBF import error:",
+              error
+            );
+
+            const message =
+              axios.isAxiosError(
+                error
+              )
+                ? error.response
+                    ?.data
+                    ?.message
+                : null;
+
+            SweetAlert.errorAlert(
+              "Initialization Failed",
+              message ??
+                "Failed to import SSP client data."
+            );
+          },
+        });
+      }
+    );
+
+    // Allows selecting the same DBF again.
+    event.target.value = "";
+  };
+      
 
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -127,6 +227,9 @@ export default function Sidebar({
       socket.emit(
         "join-admin-withdraw-room"
       );
+      socket.emit(
+        "join-admin-promotion-room"
+      );
     }
 
     if (
@@ -198,6 +301,19 @@ export default function Sidebar({
       });
     };
 
+    const handleAdminPromotionCreated = () => {
+      setNewPromotionCount(
+        (previous) =>
+          previous + 1
+      );
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "agent-promotion-recommendations",
+        ],
+      });
+    };
+
     socket.on(
       "new-reactivation-approval",
       handleNewReactivationApproval
@@ -216,6 +332,11 @@ export default function Sidebar({
     socket.on(
       "admin-withdraw-updated",
       handleAdminWithdrawUpdated
+    );
+
+    socket.on(
+      "admin-promotion-created",
+      handleAdminPromotionCreated
     );
 
     return () => {
@@ -237,6 +358,11 @@ export default function Sidebar({
       socket.off(
         "admin-withdraw-updated",
         handleAdminWithdrawUpdated
+      );
+
+      socket.off(
+        "admin-promotion-created",
+        handleAdminPromotionCreated
       );
     };
   }, [
@@ -262,6 +388,12 @@ export default function Sidebar({
 
       if (path.startsWith("/Transaction")) {
         setNewTransactionCount(0);
+      }
+
+      if (
+        path.startsWith("/Promotion")
+      ) {
+        setNewPromotionCount(0);
       }
     };
   return (
@@ -306,22 +438,81 @@ export default function Sidebar({
       </button>
 
       <div className="flex items-center justify-between border-b border-neutralPrimary pb-3.5 mb-6">
+
+        {/* Hidden DBF input */}
+        <input
+          ref={dbfInputRef}
+          type="file"
+          accept=".dbf"
+          onChange={
+            handleDbfFileChange
+          }
+          className="hidden"
+        />
+
         <button
+          type="button"
+          disabled={
+            isImportingDbf
+          }
           onClick={() => {
-            router.push("/?initialize=true");
+            dbfInputRef.current?.click();
           }}
           className={`
-            inline-flex items-center
-            ${isOpen ? "justify-between" : "justify-center"}
+            inline-flex
+            items-center
+            ${isOpen
+              ? "justify-between"
+              : "justify-center"
+            }
             w-full
-            bg-positive hover:bg-positive-hover
-            py-2 rounded-lg text-white px-4
-            transition-all duration-300
+            bg-positive
+            hover:bg-positive-hover
+            py-2
+            rounded-lg
+            text-white
+            px-4
+            transition-all
+            duration-300
+            disabled:opacity-50
+            disabled:cursor-not-allowed
           `}
         >
-          {isOpen ? (
+          {isImportingDbf ? (
+            isOpen ? (
+              <>
+                Initializing...
+
+                <div
+                  className="
+                    w-5
+                    h-5
+                    border-2
+                    border-white
+                    border-t-transparent
+                    rounded-full
+                    animate-spin
+                  "
+                />
+              </>
+            ) : (
+              <div
+                className="
+                  w-5
+                  h-5
+                  border-2
+                  border-white
+                  border-t-transparent
+                  rounded-full
+                  animate-spin
+                "
+              />
+            )
+          ) : isOpen ? (
             <>
-              Initialize SSP <Cpu />
+              Initialize SSP
+
+              <Cpu />
             </>
           ) : (
             <Cpu />
@@ -571,6 +762,33 @@ export default function Sidebar({
                                     ? "99+"
                                     : newTransactionCount}
                                 </span>
+                              )}
+
+                              {label === "Agent Promotions" &&
+                                newPromotionCount > 0 && (
+                                  <span
+                                    className="
+                                      absolute
+                                      -top-3
+                                      -right-4
+                                      min-w-5
+                                      h-5
+                                      px-1
+                                      flex
+                                      items-center
+                                      justify-center
+                                      rounded-full
+                                      bg-negative
+                                      text-white
+                                      text-[10px]
+                                      font-bold
+                                      leading-none
+                                    "
+                                  >
+                                    {newPromotionCount > 99
+                                      ? "99+"
+                                      : newPromotionCount}
+                                  </span>
                               )}
                           </div>
                         </div>

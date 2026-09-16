@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { getAllClients, getCommissionDetails } from "./clients.service";
+import { getAllClients, getCommissionDetails, importClientsFromDbf } from "./clients.service";
 
 export const getAllClientsController = async (
   req: Request,
@@ -85,3 +85,56 @@ export const getCommissionDetailsController = async (
     });
   }
 }
+
+
+
+// -----------------------------------------------------
+// IMPORT DBF CLIENTS
+// -----------------------------------------------------
+
+export const importClientsDbfController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "DBF file is required.",
+        });
+    }
+
+    const result =
+      await importClientsFromDbf({
+        buffer:
+          req.file.buffer,
+      });
+
+    return res
+      .status(201)
+      .json({
+        message:
+          "Client data imported successfully.",
+
+        ...result,
+      });
+
+  } catch (error) {
+    console.error(
+      "Import DBF Error:",
+      error
+    );
+
+    return res
+      .status(500)
+      .json({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to import DBF file.",
+      });
+  }
+};

@@ -37,6 +37,7 @@ export interface ReportsTopAgent {
     level: string;
   } | null;
   totalCommission: number;
+  totalTransactions: number;
 }
 
 export interface ReportsMonthlyExpense {

@@ -235,7 +235,7 @@ export default function ReportsAnalytics() {
             <div className="border border-neutralMed rounded-xl shadow-sm">
                 <div className="p-custom-16 border-b border-neutralMed">
                   <h3 className="font-semibold text-mainPrimary">
-                    Top Earning Agents
+                    Top Performer Agents
                   </h3>
                 </div>
                 <TopEarningAgentsTable

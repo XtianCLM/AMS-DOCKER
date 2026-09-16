@@ -8,13 +8,13 @@ import generalRoutes from "../modules/general/general.routes"
 import commissionRoutes from "../modules/commission/commission.routes"
 import reactivateRoutes from "../modules/reactivate/reactivate.routes"
 import reassignmentRoutes from "../modules/reassignment/reassignment.routes"
-import paymentRoutes from "../modules/payment/payment.routes"
+
 import transactionsRoutes from "../modules/transactions/transactions.routes"
 import { errorMiddleware } from "../middleware/error.middleware";
 import withdrawalRoutes from "../modules/withdraw/withdraw.routes";
 import reportsRoutes from "../modules/reports/reports.routes";
 import permissionRoutes from "../modules/permissions/permissions.routes";
-import webhookRoutes from "../modules/webhooks/webhooks.routes";
+
 const router = Router();
 
 
@@ -26,16 +26,10 @@ router.use("/general", generalRoutes);
 router.use("/commission",commissionRoutes);
 router.use("/reactivation",reactivateRoutes);
 router.use("/reassignment",reassignmentRoutes);
-router.use("/payment",paymentRoutes);
 router.use("/transactions",transactionsRoutes);
 router.use("/withdrawals", withdrawalRoutes);
 router.use("/reports", reportsRoutes);
 router.use("/permissions", permissionRoutes);
 router.use(errorMiddleware);
-
-router.use(
-  "/webhooks",
-  webhookRoutes
-);
 
 export default router;

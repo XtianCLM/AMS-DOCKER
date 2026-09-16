@@ -5,7 +5,7 @@ import { getAgentUplines } from "./utils/commission.fetchUpline";
 import generateSaleReference from "./utils/commission.saleRef";
 import { CreditLedgerType, CreditSource, PayoutChannel, PayoutPurpose, WithdrawalStatus } from "../../../generated/prisma";
 import { syncAgentCreditScore } from "../../services/creditLedger/creditLedger.service";
-import { createXenditDisbursement } from "../../services/xendit/xendit.service";
+
 import { sendSmsToGateway } from "../../services/sms/sms.services";
 
 export const scannedAgent = async (
@@ -204,562 +204,6 @@ export const scannedAgent = async (
 
 
 
-// export const createCommissionScan =
-//   async ({
-//     clientId,
-//     agentId,
-//     branchId,
-//     scannedBy,
-//     payoutChannel,
-//     checkNumber,
-//   }: CreateCommissionPayload) => {
-//     /*
-//      * Validate payout channel.
-//      */
-//     if (
-//       payoutChannel !== "GCASH" &&
-//       payoutChannel !== "CHECK"
-//     ) {
-//       throw new Error(
-//         "Invalid payout channel"
-//       );
-//     }
-
-//     const normalizedCheckNumber =
-//       checkNumber?.trim() || null;
-
-//     if (
-//       payoutChannel === "CHECK" &&
-//       !normalizedCheckNumber
-//     ) {
-//       throw new Error(
-//         "Check number is required for CHECK payouts"
-//       );
-//     }
-
-//     const agent =
-//       await prisma.agent.findUnique({
-//         where: {
-//           id: agentId,
-//         },
-
-//         select: {
-//           id: true,
-//           agentCode: true,
-//           telephone: true,
-//           fullName: true
-//         },
-//       });
-
-//     if (!agent) {
-//       throw new Error(
-//         "Agent not found"
-//       );
-//     }
-
-//     if (
-//       payoutChannel === "GCASH" &&
-//       !agent.fullName 
-//     ){
-//       throw new Error(
-//         "GCash account name is required."
-//       );
-//     }
-//     if (
-//       payoutChannel === "GCASH" &&
-//       !agent.telephone 
-//     ){
-//       throw new Error(
-//          "GCash account number is required."
-//       );
-//     }
-
-//     const scanData =
-//       await scannedAgent(
-//         agent.agentCode,
-//         clientId
-//       );
-
-//     const saleReference =
-//       generateSaleReference("SCAN");
-    
-   
-//     const result =  await prisma.$transaction(
-//       async (tx) => {
-//         /*
-//          * Prevent the same client from being
-//          * commissioned more than once.
-//          */
-//         const existingCommissionScan =
-//           await tx.commissionScan.findFirst({
-//             where: {
-//               clientId,
-//             },
-
-//             select: {
-//               id: true,
-//             },
-//           });
-
-//         if (existingCommissionScan) {
-//           throw new Error(
-//             "Commission has already been processed for this client"
-//           );
-//         }
-
-//         /*
-//          * Create the main commission scan record.
-//          *
-//          * The direct commission is paid immediately
-//          * through GCASH or CHECK.
-//          */
-//         const commissionScan =
-//           await tx.commissionScan.create({
-//             data: {
-//               clientId,
-
-//               claimedByAgentId:
-//                 agentId,
-
-//               branchId,
-
-//               scannedBy,
-
-//               saleReference,
-
-//               AgentScannedStatus:
-//                 scanData.agent.status,
-
-//               payoutChannel,
-
-//               checkNumber:
-//                 payoutChannel === "CHECK"
-//                   ? normalizedCheckNumber
-//                   : null,
-//             },
-//           });
-
-//         /*
-//          * Record the direct commission transaction.
-//          *
-//          * Important:
-//          * The direct commission is not added to the
-//          * withdrawal ledger because it is paid
-//          * immediately through GCASH or CHECK.
-//          */
-//         const directTransaction =
-//         await tx.commissionTransaction.create({
-//           data: {
-//             sourceAgentId:
-//               scanData.agent.id,
-
-//             receiverAgentId:
-//               scanData.agent.id,
-
-//             commissionRuleId:
-//               scanData.directCommission.rule.id,
-
-//             overrideCommissionRuleId:
-//               null,
-
-//             commissionScanId:
-//               commissionScan.id,
-
-//             commissionType:
-//               "DIRECT",
-
-//             saleAmount:
-//               Number(
-//                 scanData.client.loanAmount ?? 0
-//               ),
-
-//             commissionAmount:
-//               scanData.directCommission.amount,
-
-//             percentage:
-//               scanData.directCommission.rule
-//                 .piraRate,
-
-//             sourceLevel:
-//               scanData.agent.level,
-
-//             receiverLevel:
-//               scanData.agent.level,
-
-//             remarks:
-//               payoutChannel === "GCASH"
-//                     ? "Direct commission payout pending"
-//                     : `Direct commission prepared for CHECK ${normalizedCheckNumber}`,
-//           },
-//         });
-
-//         let directPayoutRequest = null;
-
-//         if (payoutChannel === "GCASH") {
-//             directPayoutRequest =
-//               await tx.creditWithdrawalRequest.create({
-//                 data: {
-//                   agentId:
-//                     scanData.agent.id,
-
-//                   purpose:
-//                     PayoutPurpose.DIRECT_COMMISSION,
-
-//                   commissionScanId:
-//                     commissionScan.id,
-
-//                   commissionTransactionId:
-//                     directTransaction.id,
-
-//                   amount:
-//                     scanData.directCommission.amount,
-
-//                   payoutChannel:
-//                     PayoutChannel.GCASH,
-
-//                   accountName:
-//                     agent.fullName!,
-
-//                   accountNumber:
-//                     agent.telephone!,
-
-//                   status:
-//                     WithdrawalStatus.PENDING,
-
-//                   remarks:
-//                     "Automatic direct commission payout",
-//                 },
-//               });
-//           }
-
-//         /*
-//          * Track only upline agents whose withdrawal
-//          * balances need to be synchronized.
-//          */
-//         const affectedUplineAgentIds =
-//           new Set<string>();
-
-//         /*
-//          * Create override commission transactions.
-//          */
-//         for (
-//           const override of
-//           scanData.overrideCommissions
-//         ) {
-//           await tx.commissionTransaction.create({
-//             data: {
-//               sourceAgentId:
-//                 scanData.agent.id,
-
-//               receiverAgentId:
-//                 override.agent.id,
-
-//               commissionRuleId:
-//                 null,
-
-//               overrideCommissionRuleId:
-//                 override.ruleId,
-
-//               commissionScanId:
-//                 commissionScan.id,
-
-//               commissionType:
-//                 "DOWNLINE",
-
-//               saleAmount:
-//                 Number(
-//                   scanData.client.loanAmount ?? 0
-//                 ),
-
-//               commissionAmount:
-//                 override.amount,
-
-//               sourceLevel:
-//                 scanData.agent.level,
-
-//               receiverLevel:
-//                 override.agent.level,
-
-//               remarks:
-//                 override.blocked
-//                   ? `BLOCKED: ${override.reason}`
-//                   : "Override Commission",
-//             },
-//           });
-
-//           /*
-//            * Blocked override commissions are recorded
-//            * but are not added to the withdrawal ledger.
-//            */
-//           if (override.blocked) {
-//             continue;
-//           }
-
-//           await tx.agentWithdrawalLedger.create({
-//             data: {
-//               agentId:
-//                 override.agent.id,
-
-//               type:
-//                 CreditLedgerType.CREDIT,
-
-//               amount:
-//                 override.amount,
-
-//               sourceType:
-//                 CreditSource.COMMISSION,
-
-//               sourceId:
-//                 commissionScan.id,
-
-//               description:
-//                 "Override commission earned",
-//             },
-//           });
-
-//           affectedUplineAgentIds.add(
-//             override.agent.id
-//           );
-//         }
-
-//         /*
-//          * Synchronize only the uplines that received
-//          * withdrawable override commissions.
-//          */
-//         for (
-//           const receiverAgentId of
-//           affectedUplineAgentIds
-//         ) {
-//           await syncAgentCreditScore(
-//             tx,
-//             receiverAgentId
-//           );
-//         }
-
-//         /*
-//          * Maintenance cycle handling.
-//          */
-//         if (
-//           scanData.agent.status ===
-//           "ACTIVE"
-//         ) {
-//           const activeCycle =
-//             await tx.agentMaintenanceCycle.findFirst({
-//               where: {
-//                 agentId:
-//                   scanData.agent.id,
-
-//                 status: {
-//                   in: [
-//                     "ACTIVE",
-//                     "GRACE",
-//                   ],
-//                 },
-//               },
-
-//               orderBy: {
-//                 createdAt: "desc",
-//               },
-//             });
-
-//           if (!activeCycle) {
-//             throw new Error(
-//               "No active maintenance cycle found"
-//             );
-//           }
-
-//           if (
-//             activeCycle.status ===
-//             "ACTIVE"
-//           ) {
-//             const remainingSales =
-//               Math.max(
-//                 activeCycle.requiredSales -
-//                   1,
-//                 0
-//               );
-
-//             await tx.agentMaintenanceCycle.update({
-//               where: {
-//                 id:
-//                   activeCycle.id,
-//               },
-
-//               data: {
-//                 requiredSales:
-//                   remainingSales,
-
-//                 completedSales:
-//                   activeCycle.completedSales +
-//                   1,
-
-//                 remainingSales,
-
-//                 isCompleted:
-//                   remainingSales === 0,
-//               },
-//             });
-//           } else {
-//             /*
-//              * GRACE cycle:
-//              * only increase completed sales.
-//              */
-//             await tx.agentMaintenanceCycle.update({
-//               where: {
-//                 id:
-//                   activeCycle.id,
-//               },
-
-//               data: {
-//                 completedSales:
-//                   activeCycle.completedSales +
-//                   1,
-//               },
-//             });
-//           }
-//         }
-
-//         /*
-//          * Probation handling.
-//          */
-//         if (
-//           scanData.agent.status ===
-//           "PROBATION"
-//         ) {
-//           const now = new Date();
-
-//           const probationRequest =
-//             await tx.agentReactivationRequest.findFirst({
-//               where: {
-//                 agentId:
-//                   scanData.agent.id,
-
-//                 status:
-//                   "PROBATION",
-
-//                 probationEndsAt: {
-//                   gte: now,
-//                 },
-//               },
-
-//               orderBy: {
-//                 createdAt: "desc",
-//               },
-//             });
-
-//           if (!probationRequest) {
-//             throw new Error(
-//               "No active probation request found"
-//             );
-//           }
-
-//           const completedSales =
-//             probationRequest.completedSales +
-//             1;
-
-//           const isCompleted =
-//             completedSales >=
-//             probationRequest.requiredSales;
-
-//           await tx.agentReactivationRequest.update({
-//             where: {
-//               id:
-//                 probationRequest.id,
-//             },
-
-//             data: {
-//               completedSales,
-//               isCompleted,
-//             },
-//           });
-//         }
-
-//         /*
-//          * Mark the client as already commissioned.
-//          */
-//         await tx.dailyClientDetails.update({
-//           where: {
-//             id:
-//               clientId,
-//           },
-
-//           data: {
-//             clientStatus:
-//               "SCANNED",
-//           },
-//         });
-
-//         return {
-//             commissionScan,
-//             directTransaction,
-//             directPayoutRequest,
-//             agentFullName:
-//               agent.fullName,
-//         };
-//       }
-//     );
-
-//         /*
-//      * CHECK does not use Xendit.
-//      *
-//      * The commission record has already been saved,
-//      * so it can be returned immediately.
-//      */
-//     if (
-//       payoutChannel === "CHECK"
-//     ) {
-//       return {
-//         commissionScan:
-//           result.commissionScan,
-
-//         directTransaction:
-//           result.directTransaction,
-
-//         payoutRequest:
-//           null,
-
-//         payoutStatus:
-//           "CHECK",
-//       };
-//     }
-
-//     if (!result.directPayoutRequest) {
-//       throw new Error(
-//         "Direct commission payout request was not created."
-//       );
-//     }
-
-//     /*
-//      * Automatically submit the payout to Xendit.
-//      *
-//      * No admin approval is required.
-//      */
-//     const processedPayout =
-//       await processAutomaticDirectCommissionPayout({
-//         payoutRequestId:
-//           result.directPayoutRequest.id,
-
-//         agentFullName:
-//           result.agentFullName,
-//       });
-
-//     return {
-//       commissionScan:
-//         result.commissionScan,
-
-//       directTransaction:
-//         result.directTransaction,
-
-//       payoutRequest:
-//         processedPayout,
-
-//       payoutStatus:
-//         processedPayout.status,
-//     };
-//   };
-
-
-
 export const createCommissionScan =
   async ({
     clientId,
@@ -952,42 +396,30 @@ export const createCommissionScan =
 
         let directPayoutRequest = null;
 
-        if (payoutChannel === "GCASH") {
-            directPayoutRequest =
-              await tx.creditWithdrawalRequest.create({
-                data: {
-                  agentId:
-                    scanData.agent.id,
-
-                  purpose:
-                    PayoutPurpose.DIRECT_COMMISSION,
-
-                  commissionScanId:
-                    commissionScan.id,
-
-                  commissionTransactionId:
-                    directTransaction.id,
-
-                  amount:
-                    scanData.directCommission.amount,
-
-                  payoutChannel:
-                    PayoutChannel.GCASH,
-
-                  accountName:
-                    agent.fullName!,
-
-                  accountNumber:
-                    gcashNumber!,
-
-                  status:
-                    WithdrawalStatus.PENDING,
-
-                  remarks:
-                    "Automatic direct commission payout",
-                },
-              });
-          }
+        directPayoutRequest =
+          await tx.creditWithdrawalRequest.create({
+            data: {
+              agentId:
+                scanData.agent.id,
+              purpose:
+                PayoutPurpose.DIRECT_COMMISSION,
+              commissionScanId:
+                commissionScan.id,
+              commissionTransactionId:
+                directTransaction.id,
+              amount:
+                scanData.directCommission.amount,
+              payoutChannel:
+                payoutChannel,
+              accountName:
+                agent.fullName!,
+              accountNumber: gcashNumber ?? null,
+              status:
+                WithdrawalStatus.PENDING,
+              remarks:
+                "Automatic direct commission payout",
+            },
+          });
 
         /*
          * Track only upline agents whose withdrawal
@@ -1434,15 +866,68 @@ export const createCommissionScan =
      *
      * No admin approval is required.
      */
-    try {
-      const processedPayout =
-        await processAutomaticDirectCommissionPayout({
-          payoutRequestId:
-            result.directPayoutRequest.id,
 
-          agentFullName:
-            result.agentFullName,
-        });
+
+
+
+    
+    // try {
+    //   const processedPayout =
+    //     await processAutomaticDirectCommissionPayout({
+    //       payoutRequestId:
+    //         result.directPayoutRequest.id,
+
+    //       agentFullName:
+    //         result.agentFullName,
+    //     });
+
+    //   return {
+    //     commissionScan:
+    //       result.commissionScan,
+
+    //     directTransaction:
+    //       result.directTransaction,
+
+    //     payoutRequest:
+    //       processedPayout,
+
+    //     payoutStatus:
+    //       processedPayout.status,
+
+    //     payoutMessage:
+    //       "Direct commission payout submitted successfully.",
+    //   };
+    // } catch (error) {
+    //   const failedPayout =
+    //     await prisma.creditWithdrawalRequest.findUnique({
+    //       where: {
+    //         id:
+    //           result.directPayoutRequest.id,
+    //       },
+    //     });
+
+    //   return {
+    //     commissionScan:
+    //       result.commissionScan,
+
+    //     directTransaction:
+    //       result.directTransaction,
+
+    //     payoutRequest:
+    //       failedPayout,
+
+    //     payoutStatus:
+    //       WithdrawalStatus.FAILED,
+
+    //     payoutMessage:
+    //       error instanceof Error
+    //         ? error.message
+    //         : "The commission was created, but the GCash payout failed.",
+    //   };
+    // }
+
+
+    try {
 
       return {
         commissionScan:
@@ -1450,12 +935,6 @@ export const createCommissionScan =
 
         directTransaction:
           result.directTransaction,
-
-        payoutRequest:
-          processedPayout,
-
-        payoutStatus:
-          processedPayout.status,
 
         payoutMessage:
           "Direct commission payout submitted successfully.",
@@ -1488,195 +967,22 @@ export const createCommissionScan =
             : "The commission was created, but the GCash payout failed.",
       };
     }
+
+
+
+
+
+
+
+
+
+
+
+
   };
 
 
 
-
-const mapPayoutChannelToXenditCode = (channel: string) => {
-  if (channel === "GCASH") return "PH_GCASH";
-
-  return channel;
-};
-
-export const processAutomaticDirectCommissionPayout =
-  async ({
-    payoutRequestId,
-    agentFullName,
-  }: ProcessDirectCommissionPayoutPayload) => {
-    const payout =
-      await prisma.creditWithdrawalRequest.findUnique({
-        where: {
-          id: payoutRequestId,
-        },
-      });
-
-    if (!payout) {
-      throw new Error(
-        "Direct commission payout request not found."
-      );
-    }
-
-    if (
-      payout.purpose !==
-      PayoutPurpose.DIRECT_COMMISSION
-    ) {
-      throw new Error(
-        "The payout request is not a direct commission payout."
-      );
-    }
-
-    /*
-     * Idempotency protection.
-     *
-     * Avoid creating a second Xendit payout if this
-     * function is accidentally called more than once.
-     */
-    if (
-      payout.status ===
-      WithdrawalStatus.PROCESSING
-    ) {
-      return payout;
-    }
-
-    if (
-      payout.status ===
-      WithdrawalStatus.COMPLETED
-    ) {
-      return payout;
-    }
-
-    const externalId =
-      payout.xenditExternalId ??
-      `direct_commission_${payout.id}`;
-
-    /*
-     * Set PROCESSING and persist the reference before
-     * sending the external API request.
-     */
-    const processingPayout =
-      await prisma.creditWithdrawalRequest.update({
-        where: {
-          id: payout.id,
-        },
-
-        data: {
-          status:
-            WithdrawalStatus.PROCESSING,
-
-          xenditExternalId:
-            externalId,
-
-          failureCode:
-            null,
-
-          failureMessage:
-            null,
-        },
-      });
-
-    try {
-      const disbursement =
-        await createXenditDisbursement({
-          externalId,
-
-          amount:
-            Number(
-              processingPayout.amount
-            ),
-
-          channelCode:
-            mapPayoutChannelToXenditCode(
-              processingPayout.payoutChannel
-            ),
-
-          accountName:
-            processingPayout.accountName,
-
-          accountNumber:
-            processingPayout.accountNumber,
-
-          description:
-            `Direct commission payout for ${agentFullName}`,
-        });
-
-      const updatedPayout =
-        await prisma.creditWithdrawalRequest.update({
-          where: {
-            id:
-              processingPayout.id,
-          },
-
-          data: {
-            xenditDisbursementId:
-              disbursement.id,
-
-            rawResponse:
-              disbursement,
-
-            /*
-             * Leave this as PROCESSING.
-             *
-             * The webhook should change it to
-             * COMPLETED or FAILED.
-             */
-            status:
-              WithdrawalStatus.PROCESSING,
-          },
-        });
-
-      return updatedPayout;
-    } catch (error) {
-      const failureMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to create direct commission payout.";
-
-      await prisma.$transaction(
-        async (tx) => {
-          await tx.creditWithdrawalRequest.update({
-            where: {
-              id:
-                processingPayout.id,
-            },
-
-            data: {
-              status:
-                WithdrawalStatus.FAILED,
-
-              failureMessage,
-            },
-          });
-
-          if (
-            processingPayout.commissionTransactionId
-          ) {
-            await tx.commissionTransaction.updateMany({
-              where: {
-                id:
-                  processingPayout.commissionTransactionId,
-              },
-
-              data: {
-                remarks:
-                  "Direct commission GCash payout failed",
-              },
-            });
-          }
-
-          /*
-           * Do not create RELEASE.
-           *
-           * Direct commissions have no RESERVE entry.
-           */
-        }
-      );
-
-      throw error;
-    }
-  };
-
-  
 
 export const updateCommissionRuleService = async (
   data: UpdateCommissionRules

@@ -1,0 +1,39 @@
+name: ams-local
+
+services:
+  api:
+    image: ams-api:latest
+    container_name: ams-api
+    restart: unless-stopped
+
+    env_file:
+      - ./apps/api/.env
+
+    ports:
+      - "5000:5000"
+
+    volumes:
+      - ./docker-data/uploads:/app/apps/api/uploads
+
+    networks:
+      - ams-network
+
+
+  web:
+    image: ams-web:latest
+    container_name: ams-web
+    restart: unless-stopped
+
+    depends_on:
+      - api
+
+    ports:
+      - "3000:3000"
+
+    networks:
+      - ams-network
+
+
+networks:
+  ams-network:
+    driver: bridge

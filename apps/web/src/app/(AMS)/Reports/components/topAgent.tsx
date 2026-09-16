@@ -36,6 +36,9 @@ export default function TopEarningAgentsTable({
                 Agent
               </th>
               <th className="text-left px-custom-24 py-5 font-semibold">
+                Transactions
+              </th>
+              <th className="text-left px-custom-24 py-5 font-semibold">
                 Commission
               </th>
               <th className="text-left px-custom-24 py-5 font-semibold">
@@ -85,6 +88,9 @@ export default function TopEarningAgentsTable({
                 >
                   <td className="text-left px-6 py-4 font-semibold ">
                     {topagent.agent?.fullName ?? "Unknown Agent"}
+                  </td>
+                  <td className="text-center py-4 font-semibold ">
+                    {topagent.totalTransactions ?? "Unknown Agent"}
                   </td>
 
                   <td className="text-left px-6 py-4">

@@ -34,6 +34,19 @@ export const registerSocketEvents = (io: Server) => {
       console.log("Admin joined room: admin:withdraw");
     });
 
+    socket.on(
+      "join-admin-promotion-room",
+      () => {
+        socket.join(
+          "admin:promotions"
+        );
+
+        console.log(
+          "Admin joined room: admin:promotions"
+        );
+      }
+    );
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });

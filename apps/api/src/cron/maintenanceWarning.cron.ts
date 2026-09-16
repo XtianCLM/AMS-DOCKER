@@ -151,7 +151,8 @@
 import cron from "node-cron";
 
 import {
-  processMaintenanceWarnings, processDeactivationWarning
+  processMaintenanceWarnings, processDeactivationWarning,
+  processNewClientsToPending
 } from "./maintenanceWarning.processor";
 
 export const maintenanceWarningCron =
@@ -170,6 +171,9 @@ export const maintenanceWarningCron =
           error
         );
       }
+    },
+    {
+    timezone: "Asia/Manila",
     }
   );
 
@@ -182,5 +186,31 @@ export const deactivationWarningCron =
       );
 
       await processDeactivationWarning();
+    },
+    {
+    timezone: "Asia/Manila",
     }
   );
+
+
+export const dailyClientStatusCron =
+  cron.schedule(
+    "0 0 * * *",
+    async () => {
+      try {
+        console.log(
+          "Running daily client status processor..."
+        );
+
+        await processNewClientsToPending();
+      } catch (error) {
+        console.error(
+          "Daily Client Status Cron Error:",
+          error
+        );
+      }
+    },
+    {
+      timezone: "Asia/Manila",
+    }
+);

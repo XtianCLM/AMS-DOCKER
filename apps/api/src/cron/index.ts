@@ -2,7 +2,7 @@
 import { maintenanceResetCron }
   from "./maintenanceReset.cron";
 
-import { maintenanceWarningCron }
+import { dailyClientStatusCron, maintenanceWarningCron }
   from "./maintenanceWarning.cron";
 
 import { maintenanceReactivationCron }
@@ -13,7 +13,8 @@ import {
 } from "./maintenance.processor";
 
 import {
-  processMaintenanceWarnings
+  processMaintenanceWarnings,
+  processNewClientsToPending
 } from "./maintenanceWarning.processor";
 
 import {
@@ -34,11 +35,17 @@ export const initializeCrons =
       // Recover missed probation processing
       await processProbationRequests();
 
+      // Recover missed client status updates
+      await processNewClientsToPending();
+
+
       maintenanceResetCron.start();
 
       maintenanceWarningCron.start();
 
       maintenanceReactivationCron.start();
+
+      dailyClientStatusCron.start();
 
       console.log(
         "Cron jobs initialized."

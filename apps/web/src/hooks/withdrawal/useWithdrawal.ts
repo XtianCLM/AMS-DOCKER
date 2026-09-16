@@ -1,4 +1,4 @@
-import { approveWithdrawalRequest, createMyWithdrawalRequest, rejectWithdrawalRequest } from "@/services/withdrawal/withdrawal.service";
+import { approveWithdrawalRequest, createMyWithdrawalRequest, rejectWithdrawalRequest, uploadWithdrawalReceipt } from "@/services/withdrawal/withdrawal.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 
@@ -48,6 +48,31 @@ export const useRejectFailedWithdrawalRequest = () => {
 
       queryClient.invalidateQueries({
         queryKey: ["agent-details"],
+      });
+    },
+  });
+};
+
+
+export const useUploadWithdrawalReceipt = () => {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn:
+      uploadWithdrawalReceipt,
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          "admin-withdrawals",
+        ],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "my-withdrawal-requests",
+        ],
       });
     },
   });

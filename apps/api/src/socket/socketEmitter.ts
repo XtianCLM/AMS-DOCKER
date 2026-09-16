@@ -1,6 +1,6 @@
 // src/socket/socketEmitter.ts
 
-import { AdminReactivationPaymentSocketPayload, AdminReactivationWithdrawSocketPayload, NotificationPayload, ReactivationApprovalSocketBranchPayload, ReactivationApprovalSocketPayload } from "@repo/shared";
+import { AdminPromotionRecommendationSocketPayload, AdminReactivationPaymentSocketPayload, AdminReactivationWithdrawSocketPayload, NotificationPayload, ReactivationApprovalSocketBranchPayload, ReactivationApprovalSocketPayload } from "@repo/shared";
 import { getIO } from "./index";
 
 
@@ -77,3 +77,14 @@ export const emitAdminWithdrawUpdated = (
     payload
   )
 }
+
+export const emitAdminPromotionRecommendation = (
+  payload: AdminPromotionRecommendationSocketPayload
+) => {
+  const io = getIO();
+
+  io.to("admin:promotions").emit(
+    "admin-promotion-created",
+    payload
+  );
+};

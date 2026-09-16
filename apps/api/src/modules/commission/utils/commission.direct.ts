@@ -11,7 +11,6 @@ export const calculateDirectCommission = ({
   const computedAmount =
     (
       installmentAmount *
-      term *
       (piraRate / 100)
     ) /
     12 *

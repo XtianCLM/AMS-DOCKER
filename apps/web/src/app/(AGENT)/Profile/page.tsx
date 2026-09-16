@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/context/UserContext";
-import { useAgentDetails,useAgentTransactionsHist, useMarkNotificationsRead, useRemainingSales } from "@/hooks/agents/useAgent";
+import { useAgentDetails,useAgentMonthlyTransactions,useAgentTransactionsHist, useCreatePromotionRecommendation, useMarkNotificationsRead, useRemainingSales } from "@/hooks/agents/useAgent";
 import { AgentNotification } from "@repo/shared";
 import { Bell, X } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -75,7 +75,94 @@ export default function AgentProfile() {
       setDownlinePage(1);
     };
 
-      
+
+
+
+
+    // For Fetching Transaction per dowline 
+    const [
+      selectedDownlineId,
+      setSelectedDownlineId,
+    ] =
+      useState<string | null>(
+        null
+      );
+
+    const [
+      openDownlineTransactions,
+      setOpenDownlineTransactions,
+    ] =
+      useState(false);
+
+    const [
+      transactionYear,
+      setTransactionYear,
+    ] =
+      useState(
+        new Date().getFullYear()
+      );
+
+
+    const {
+      data:
+        downlineTransactionData,
+
+      isLoading:
+        isLoadingDownlineTransactions,
+    } =
+      useAgentMonthlyTransactions(
+        selectedDownlineId,
+        transactionYear,
+        openDownlineTransactions
+      );
+
+
+    // For Agent Recom Promotion 
+    const {
+      mutateAsync:
+        createPromotionRecommendation,
+
+      isPending:
+        isCreatingPromotionRecommendation,
+    } =
+      useCreatePromotionRecommendation();
+
+    const handleRecommendForPromotion = (
+      agentId: string,
+      agentName: string
+    ) => {
+      SweetAlert.confirmationAlert(
+        "Recommend for Promotion?",
+        `Are you sure you want to recommend ${agentName} for promotion?`,
+        async () => {
+          try {
+            SweetAlert.loadingAlert(
+              "Submitting Recommendation",
+              "Please wait..."
+            );
+
+            await createPromotionRecommendation({
+              agentId,
+            });
+
+            Swal.close();
+
+            await SweetAlert.successAlert(
+              "Recommendation Submitted",
+              `${agentName} has been recommended for promotion.`
+            );
+          } catch (error) {
+            Swal.close();
+
+            SweetAlert.errorAlert(
+              "Recommendation Failed",
+              getErrorMessage(error)
+            );
+          }
+        }
+      );
+    };
+                      
 
 
     const {data: salesInfo} = useRemainingSales({agentId:user?.agent?.id ?? "",});
@@ -583,12 +670,12 @@ export default function AgentProfile() {
                         
                         <div className="w-full flex sm:flex-col justify-between gap-custom-32  text-white z-10">
                                 <button onClick={()=> {setShowQr(true)}} className="bg-neutralPrimary w-full p-custom-8  rounded-xl text-mdHeader hover:bg-neutralMed hover:text-neutralPrimary cursor-pointer  shadow-lg">Show QR</button>
-                                <button
+                                {/* <button
                                   onClick={() => openWithdrawalModal()}
                                   className="bg-lightPrimary w-full p-custom-8 rounded-xl text-mdHeader hover:bg-neutralMed hover:text-mainPrimary cursor-pointer shadow-lg"
                                 >
                                   Withdraw
-                                </button>
+                                </button> */}
                         </div>
               
 
@@ -1077,6 +1164,12 @@ export default function AgentProfile() {
                     <th className="text-left px-custom-24 py-4 font-semibold">
                       Status
                     </th>
+
+                    <th className="text-left px-custom-24 py-4 font-semibold">
+                      Actions
+                    </th>
+
+                 
                   </tr>
                 </thead>
 
@@ -1135,6 +1228,74 @@ export default function AgentProfile() {
                             {downline.status}
                           </span>
                         </td>
+
+
+                        <td className="flex w-fit gap-custom-8 justify-end py-custom-16">
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDownlineId(
+                                  downline.id
+                                );
+
+                                setTransactionYear(
+                                  new Date().getFullYear()
+                                );
+
+                                setOpenDownlineTransactions(
+                                  true
+                                );
+                              }}
+                              className="
+                                inline-flex
+                                items-center
+                                gap-custom-8
+                                rounded-lg
+                                bg-lightPrimary
+                                px-custom-16
+                                py-custom-8
+                                text-xs
+                                font-semibold
+                                text-white
+                                cursor-pointer
+                                hover:bg-mainPrimary
+                              "
+                            >
+                              View SSP Sales
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                isCreatingPromotionRecommendation
+                              }
+                              onClick={() =>
+                                handleRecommendForPromotion(
+                                  downline.id,
+                                  downline.fullName
+                                )
+                              }
+                              className="
+                                rounded-lg
+                                bg-secondary
+                                px-custom-16
+                                py-custom-8
+                                text-xs
+                                font-semibold
+                                text-white
+                                cursor-pointer
+                                hover:opacity-90
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                              "
+                            >
+                              Recommend Promotion
+                            </button>
+
+                        </td>
+
+                     
                       </tr>
                     ))
                   )}
@@ -1800,6 +1961,173 @@ export default function AgentProfile() {
                   />
               </div>
             </MainModal>
+        )}
+
+
+        {openDownlineTransactions && (
+          <MainModal
+            size="lg"
+            onClose={() => {
+              setOpenDownlineTransactions(
+                false
+              );
+
+              setSelectedDownlineId(
+                null
+              );
+            }}
+          >
+            <div className="p-custom-32 flex flex-col gap-custom-24">
+              {isLoadingDownlineTransactions ? (
+                <div className="text-center py-custom-32">
+                  Loading transactions...
+                </div>
+              ) : downlineTransactionData ? (
+                <>
+                  <div className="flex justify-between items-start border-b border-neutralMed pb-custom-16">
+                    <div>
+                      <h2 className="text-mdHeader font-bold text-mainPrimary">
+                        Monthly Transactions
+                      </h2>
+
+                      <p className="text-sm text-neutralPrimary">
+                        {
+                          downlineTransactionData
+                            .agent
+                            .fullName
+                        }
+                        {" • "}
+                        {
+                          downlineTransactionData
+                            .agent
+                            .level
+                        }
+                      </p>
+                    </div>
+
+                    <div className="bg-mainPrimary text-white rounded-xl px-custom-24 py-custom-8 text-center">
+                      <p className="text-xs">
+                        Total
+                      </p>
+
+                      <h3 className="text-mdHeader font-bold">
+                        {
+                          downlineTransactionData
+                            .totalTransactions
+                        }
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <select
+                      value={
+                        transactionYear
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setTransactionYear(
+                          Number(
+                            event.target
+                              .value
+                          )
+                        )
+                      }
+                      className="
+                        rounded-lg
+                        border
+                        border-neutralMed
+                        px-custom-16
+                        py-custom-8
+                      "
+                    >
+                      <option
+                        value={
+                          new Date().getFullYear()
+                        }
+                      >
+                        {
+                          new Date().getFullYear()
+                        }
+                      </option>
+
+                      <option
+                        value={
+                          new Date().getFullYear() -
+                          1
+                        }
+                      >
+                        {
+                          new Date().getFullYear() -
+                          1
+                        }
+                      </option>
+                    </select>
+                  </div>
+
+                  <div className="
+                    grid
+                    grid-cols-2
+                    sm:grid-cols-3
+                    md:grid-cols-4
+                    gap-custom-16
+                  ">
+                    {downlineTransactionData
+                      .monthlyTransactions
+                      .map(
+                        (
+                          item
+                        ) => (
+                          <div
+                            key={
+                              item.month
+                            }
+                            className="
+                              rounded-xl
+                              border
+                              border-neutralMed
+                              bg-white
+                              p-custom-16
+                              min-h-28
+                              flex
+                              flex-col
+                              justify-between
+                              text-center
+                            "
+                          >
+                            <p className="text-mdHeader font-semibold text-neutralPrimary">
+                              {
+                                item.label
+                              }
+                            </p>
+
+                            <div>
+                              <h3 className={`text-secondaryHeader font-bold  ${item.count === 1 ? "text-positive":"text-mainPrimary"}`}>
+                                {
+                                  item.count
+                                }
+                              </h3>
+
+                              <p className="text-xs text-neutralPrimary">
+                                {item.count ===
+                                1
+                                  ? "SSP Sale"
+                                  : "SSP Sales"}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-custom-32 text-neutralPrimary">
+                  No transaction information found.
+                </div>
+              )}
+            </div>
+          </MainModal>
         )}
         </div>
     );

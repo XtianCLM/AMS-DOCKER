@@ -74,6 +74,16 @@ export default function Transaction() {
 
     const [selectedWithdraw, setSelectedWithdraw] = useState<AdminWithdrawalRequest | null>(null);
     const [openWithdrawDetails, setOpenWithdrawDetails]= useState(false);
+    const [receiptWithdrawalId, setReceiptWithdrawalId] =
+        useState<string | null>(null);
+
+    const receiptUploadUrl = receiptWithdrawalId
+        ? `${window.location.origin}/upload-receipt/${receiptWithdrawalId}`
+        : "";
+
+        
+    const [openReceiptQR, setOpenReceiptQR] =
+        useState(false);
 
     const handleViewWithrawDetails = (
     withdraw:AdminWithdrawalRequest
@@ -94,54 +104,49 @@ export default function Transaction() {
     } = useApproveWithdrawalRequest();
 
 
+
+
     const handleApproveWithdrawal = (
-    withdrawalId: string
+        withdrawalId: string
     ) => {
-    SweetAlert.confirmationAlert(
-        "Approve Withdrawal?",
-        "This will send the payout through Xendit GCash disbursement.",
-        async () => {
-        try {
-            SweetAlert.loadingAlert();
+        SweetAlert.confirmationAlert(
+            "Transaction Complete?",
+            "Generate a QR code so you can upload the transaction receipt.",
+            async () => {
+                try {
+                    Swal.close();
 
-            await approveWithdrawal(withdrawalId);
+                    setReceiptWithdrawalId(withdrawalId);
+                    setOpenWithdrawDetails(false);
+                    setOpenReceiptQR(true);
 
-            Swal.close();
+                } catch (error) {
+                    Swal.close();
 
-            SweetAlert.successAlert(
-            "Processing",
-            "Withdrawal approved. Xendit payout is now processing."
-            );
-
-            setOpenWithdrawDetails(false);
-            setSelectedWithdraw(null);
-        } catch (error) {
-            Swal.close();
-
-            SweetAlert.errorAlert(
-            "Approval Failed",
-            getErrorMessage(error)
-            );
-        }
-        }
-    );
+                    SweetAlert.errorAlert(
+                        "Transaction Completion Failed",
+                        getErrorMessage(error)
+                    );
+                }
+            }
+        );
     };
 
     const handleRejectWithdrawal = async (
     withdrawalId: string
     ) => {
     const { value: remarks } = await Swal.fire({
-        title: "Reject Withdrawal",
-        text: "Please provide the reason for rejecting this withdrawal request.",
+        title: "Cancel Withdrawal",
+        text: "Please provide the reason for cancellation of this withdrawal.",
         input: "textarea",
-        inputPlaceholder: "Enter rejection reason...",
+        inputPlaceholder: "Enter cancellation reason...",
         inputAttributes: {
         "aria-label": "Rejection reason",
         },
         showCancelButton: true,
-        confirmButtonText: "Reject",
+        confirmButtonText: "Cancel Transaction",
         confirmButtonColor: "#dc2626",
-        cancelButtonText: "Cancel",
+        cancelButtonText: "Close",
         inputValidator: (value) => {
         if (!value?.trim()) {
             return "Rejection remarks are required.";
@@ -661,15 +666,15 @@ export default function Transaction() {
                                     </span>
                                 </div>
 
-                                <div className="bg-neutralLight rounded-xl p-custom-16">
+                                {/* <div className="bg-neutralLight rounded-xl p-custom-16">
                                     <p className="text-xs text-neutralPrimary">
                                         Xendit Fee
                                     </p>
                                     <h3 className="font-bold text-negative">
                                         ₱{Number(selectedWithdraw.companyExpenseTotal ?? 0).toLocaleString()}
                                     </h3>
-                                </div>
-
+                                </div> */}
+{/* 
                                 <div className="bg-neutralLight rounded-xl p-custom-16">
                                     <p className="text-xs text-neutralPrimary">
                                         Total Company Cost
@@ -681,10 +686,10 @@ export default function Transaction() {
                                         Number(selectedWithdraw.companyExpenseTotal ?? 0)
                                         ).toLocaleString()}
                                     </h3>
-                                </div>
+                                </div> */}
 
 
-                                <div className="bg-neutralLight rounded-xl p-custom-16 md:col-span-2">
+                                {/* <div className="bg-neutralLight rounded-xl p-custom-16 md:col-span-2">
                                     <p className="text-xs text-neutralPrimary">
                                         Xendit Disbursement ID
                                     </p>
@@ -700,7 +705,7 @@ export default function Transaction() {
                                     <h3 className="font-bold text-mainPrimary break-all">
                                         {selectedWithdraw.xenditExternalId ?? "-"}
                                     </h3>
-                                </div>
+                                </div> */}
 
                                 <div className="bg-neutralLight rounded-xl p-custom-16">
                                     <p className="text-xs text-neutralPrimary">
@@ -746,7 +751,7 @@ export default function Transaction() {
                                 >
                                     {isApprovingWithdrawal
                                     ? "Processing Payout..."
-                                    : "Approve & Send GCash Payout"}
+                                    : "Complete Transaction"}
                                 </button>
 
                                 <button
@@ -757,9 +762,10 @@ export default function Transaction() {
                                     }
                                     className="
                                     w-full
-                                    bg-negative
-                                    hover:bg-red-900
-                                    text-white
+                                    bg-neutralMed
+                                    hover:bg-neutralPrimary
+                                    hover:text-neutralLight
+                                    text-neutralPrimary
                                     py-custom-16
                                     cursor-pointer
                                     rounded-xl
@@ -770,12 +776,120 @@ export default function Transaction() {
                                 >
                                     {isApprovingWithdrawal
                                     ? "Processing Payout..."
-                                    : "Reject Withdrawal Request"}
+                                    : "Cancel Transaction"}
                                 </button>
                             </div>
                             )}
                         </div>
                     </MainModal>
+                    )}
+
+
+                    {openReceiptQR && receiptWithdrawalId && (
+                        <MainModal
+                            size="lg"
+                            onClose={() => {
+                                setOpenReceiptQR(false);
+                                setReceiptWithdrawalId(null);
+                                setSelectedWithdraw(null);
+                            }}
+                        >
+                            <div className="w-full flex flex-col items-center gap-y-custom-24 p-custom-32">
+
+                                <div className="w-full text-center border-b border-neutralMed pb-custom-16">
+                                    <h2 className="text-mdHeader font-bold text-mainPrimary">
+                                        Upload Transaction Receipt
+                                    </h2>
+
+                                    <p className="text-sm text-neutralPrimary">
+                                        Scan this QR code using your phone to upload the image.
+                                    </p>
+                                </div>
+
+                                {selectedWithdraw && (
+                                    <div className="w-full grid grid-cols-2 gap-custom-16">
+
+                                        <div className="bg-neutralLight rounded-xl p-custom-16">
+                                            <p className="text-xs text-neutralPrimary">
+                                                Agent
+                                            </p>
+
+                                            <p className="font-bold text-mainPrimary">
+                                                {selectedWithdraw.agent.fullName}
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-neutralLight rounded-xl p-custom-16">
+                                            <p className="text-xs text-neutralPrimary">
+                                                Amount
+                                            </p>
+
+                                            <p className="font-bold text-mainPrimary">
+                                                ₱
+                                                {Number(
+                                                    selectedWithdraw.amount
+                                                ).toLocaleString()}
+                                            </p>
+                                        </div>
+
+                                    </div>
+                                )}
+
+                                <div
+                                    className="
+                                        bg-white
+                                        p-custom-24
+                                        rounded-xl
+                                        border
+                                        border-neutralMed
+                                        shadow-sm
+                                    "
+                                >
+                                    <QRCode
+                                        value={receiptUploadUrl}
+                                        size={250}
+                                    />
+                                </div>
+
+                                <div className="text-center">
+                                    <p className="font-semibold text-mainPrimary">
+                                        Scan to upload receipt
+                                    </p>
+
+                                    <p className="text-sm text-neutralPrimary mt-1">
+                                        Withdrawal ID
+                                    </p>
+
+                                    <p className="text-sm font-semibold break-all">
+                                        {receiptWithdrawalId}
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setOpenReceiptQR(false);
+                                        setReceiptWithdrawalId(null);
+                                        setSelectedWithdraw(null);
+                                    }}
+                                    className="
+                                        w-full
+                                        bg-neutralMed
+                                        hover:bg-neutralPrimary
+                                        hover:text-white
+                                        text-neutralPrimary
+                                        py-custom-16
+                                        rounded-xl
+                                        font-bold
+                                        cursor-pointer
+                                        transition
+                                    "
+                                >
+                                    Close
+                                </button>
+
+                            </div>
+                        </MainModal>
                     )}
     </div>
   );

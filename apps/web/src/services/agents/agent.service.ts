@@ -2,8 +2,13 @@ import api from "@/lib/axios";
 
 import {
   AgentEditDetails,
+  AgentMonthlyTransactionResponse,
+  AgentPromotionRecommendationParams,
+  AgentPromotionRecommendationResponse,
   CheckUniqueInfoParams,
   CheckUniqueInfoResponse,
+  CreatePromotionRecommendationPayload,
+  CreatePromotionRecommendationResponse,
   GetAgentDetailsParams,
   GetAgentDetailsResponse,
   GetMasterlistParams,
@@ -15,7 +20,10 @@ import {
   GetTransactionHistResponse,
   GetTransactionParams,
   GetTransactionResponse,
+  PromotionApprovalResponse,
+  PromotionPayload,
   RegisterAgentSchema,
+  RejectPromotionParams,
   ScannedAgentParams,
   ScannedAgentResponse,
   SearchAgentsParams,
@@ -319,3 +327,106 @@ export async function updateAgentDetails(
 
   return response.data;
 }
+
+
+export const getAgentPromotionRecommendations =
+  async (
+    params: AgentPromotionRecommendationParams
+  ) => {
+    const response =
+      await api.get<
+        AgentPromotionRecommendationResponse & {
+          success: boolean;
+          message: string;
+        }
+      >(
+        "/agents/promotion-recommendations",
+        {
+          params,
+        }
+      );
+
+    return response.data;
+  };
+
+
+
+
+export const approvePromotionRecommendation =
+  async (
+    recommendationId: string,
+    payload: PromotionPayload
+  ) => {
+    const response =
+      await api.patch<{
+        success: boolean;
+        message: string;
+        data: PromotionApprovalResponse;
+      }>(
+        `/agents/${recommendationId}/promotion-approved`,
+        payload
+      );
+
+    return response.data.data;
+  };
+
+
+export const rejectPromotionRecommendation =
+  async ({
+    RecomId,
+    payload,
+  }: RejectPromotionParams) => {
+    const response =
+      await api.patch(
+        `/agents/${RecomId}/promotion-rejected`,
+        payload
+      );
+
+    return response.data.data;
+  };
+
+
+
+export const getAgentMonthlyTransactions =
+  async (
+    agentId: string,
+    year?: number
+  ) => {
+    const response =
+      await api.get<{
+        success: boolean;
+        data:
+          AgentMonthlyTransactionResponse;
+      }>(
+        `/agents/${agentId}/monthly-transactions`,
+        {
+          params: {
+            year,
+          },
+        }
+      );
+
+    return response.data.data;
+  };
+
+
+
+
+export const createPromotionRecommendation =
+  async (
+    payload:
+      CreatePromotionRecommendationPayload
+  ) => {
+    const response =
+      await api.post<{
+        success: boolean;
+        message: string;
+        data:
+          CreatePromotionRecommendationResponse;
+      }>(
+        "agents/RecoPromotion",
+        payload
+      );
+
+    return response.data.data;
+  };

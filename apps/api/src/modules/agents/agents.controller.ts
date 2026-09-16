@@ -22,9 +22,15 @@ import {
   updateAdminAccountService,
   updateAgentDetailsService,
   getAgentEditDetailsService,
+  getAgentPromotionRecommendationsService,
+  updateRecomProm,
+  rejectRecomPromotion,
+  getAgentMonthlyTransactionCounts,
+  createPromotionRecommendationService,
 } from "./agents.service";
 
 import {
+  PromotionPayload,
   registerAgentApiSchema,
   registrationAgentSchema,
   updateAccSchema,
@@ -845,6 +851,7 @@ export const getRemainingSalesController =
   }
 }
 
+
 export async function updateAgentDetailsController(
   req: Request,
   res: Response,
@@ -920,3 +927,233 @@ export async function updateAgentDetailsController(
     next(error);
   }
 }
+
+
+export const getAgentPromotionRecommendationsController =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const result =
+        await getAgentPromotionRecommendationsService({
+          page:
+            req.query.page
+              ? Number(req.query.page)
+              : 1,
+
+          limit:
+            req.query.limit
+              ? Number(req.query.limit)
+              : 10,
+
+          search:
+            typeof req.query.search === "string"
+              ? req.query.search
+              : undefined,
+
+          status:
+            typeof req.query.status === "string"
+              ? req.query.status
+              : undefined,
+        });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Promotion recommendations fetched successfully.",
+        ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+
+
+
+
+
+  export async function updateRecomPromController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { RecomId } = req.params;
+
+    if (!RecomId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Recommendation ID is required.",
+      });
+    }
+
+    const payload: PromotionPayload = {
+      PromotedTo:
+        req.body.PromotedTo,
+
+      newUplineId:
+        req.body.newUplineId ??
+        null,
+    };
+
+    if (!payload.PromotedTo) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Promotion level is required.",
+      });
+    }
+
+    const result =
+      await updateRecomProm(
+        RecomId,
+        payload
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Agent recommendation promoted successfully.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export async function rejectRecomPromController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const {
+      RecomId,
+    } = req.params;
+
+    const {
+      remarks,
+    } = req.body;
+
+    if (!RecomId) {
+      return res.status(400).json({
+        message:
+          "Recommendation ID is required.",
+      });
+    }
+
+    if (
+      !remarks ||
+      !remarks.trim()
+    ) {
+      return res.status(400).json({
+        message:
+          "Rejection reason is required.",
+      });
+    }
+
+    const rejectedRecommendation =
+      await rejectRecomPromotion(
+        RecomId,
+        remarks
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Promotion recommendation rejected successfully.",
+      data:
+        rejectedRecommendation,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+
+// Function to fetch agent transaction in agent webpage account 
+
+export const getAgentMonthlyTransactionCountsController =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const {
+        agentId,
+      } = req.params;
+
+      const year =
+        req.query.year
+          ? Number(
+              req.query.year
+            )
+          : undefined;
+
+      const result =
+        await getAgentMonthlyTransactionCounts(
+          agentId,
+          year
+        );
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+          data: result,
+        });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  
+
+// Agent Recommendation Button from Upline Downlines 
+export const createPromotionRecommendationController =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const userId =
+        (req as any).user.id;
+
+      const {
+        agentId,
+        remarks,
+      } = req.body;
+
+      if (!agentId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Agent ID is required.",
+        });
+      }
+
+      const result =
+        await createPromotionRecommendationService(
+          agentId,
+          userId,
+          remarks
+        );
+
+      return res.status(201).json({
+        success: true,
+        message:
+          "Agent recommended for promotion successfully.",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };

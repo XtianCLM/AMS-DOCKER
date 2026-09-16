@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -16,6 +17,7 @@ import {
   ChevronRight,
   QrCodeIcon,
   ViewIcon,
+  Upload,
 } from "lucide-react";
 
 import {
@@ -23,7 +25,11 @@ import {
   useSearchParams,
 } from "next/navigation";
 
-import { useGetClients, useGetCommissionDetails } from "../../hooks/clients/useClients";
+import {
+  useGetClients,
+  useGetCommissionDetails,
+  useImportClientsDbf,
+} from "../../hooks/clients/useClients";
 
 import { Client, EligibleAgentOption } from "@repo/shared";
 
@@ -35,6 +41,7 @@ import QRCode from "react-qr-code";
 import { useAuth } from "@/components/context/UserContext";
 import SweetAlert from "@/components/modal/Swal";
 import { useSearchEligibleAgents } from "@/hooks/general/useGeneral";
+import axios from "axios";
 
 /* =========================================
    QR SCANNER
@@ -60,6 +67,9 @@ type TABKEY =
    COMPONENT
 ========================================= */
 
+
+
+
 export default function ClientsPage() {
   const router = useRouter();
 
@@ -77,6 +87,17 @@ export default function ClientsPage() {
 
   const [activeTab, setActiveTab] =
     useState<TABKEY>(initialTab);
+
+  const statusMap: Record<
+    TABKEY,
+    "NEW" | "PENDING" | "SCANNED"
+  > = {
+    "daily-client": "NEW",
+    "pending-commission":
+      "PENDING",
+    "paid-commission":
+      "SCANNED",
+  };
 
   /* =========================================
      STATES
@@ -158,6 +179,8 @@ export default function ClientsPage() {
   } = useGetClients({
     page,
     search,
+    status:
+      statusMap[activeTab],
   });
 
   const {
@@ -219,35 +242,8 @@ export default function ClientsPage() {
      FILTERED CLIENTS
   ========================================= */
 
-  const filteredClients = useMemo(() => {
-    if (!data?.data) return [];
-
-    switch (activeTab) {
-      case "daily-client":
-        return data.data.filter(
-          (client: Client) =>
-            client.clientStatus ===
-            "NEW"
-        );
-
-      case "pending-commission":
-        return data.data.filter(
-          (client: Client) =>
-            client.clientStatus ===
-            "PENDING"
-        );
-
-      case "paid-commission":
-        return data.data.filter(
-          (client: Client) =>
-            client.clientStatus ===
-            "SCANNED"
-        );
-
-      default:
-        return [];
-    }
-  }, [activeTab, data]);
+  const filteredClients =
+    data?.data ?? [];
 
 
   const handleCloseModal = () => {
@@ -407,6 +403,99 @@ export default function ClientsPage() {
       }
     );
   };
+
+
+  // dbf handler 
+
+    
+  // Dbf Uploader
+  const dbfInputRef =
+    useRef<HTMLInputElement | null>(
+      null
+    );
+
+  const {
+    mutate: importDbf,
+    isPending: isImportingDbf,
+  } = useImportClientsDbf();
+
+  const handleDbfFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) return;
+
+    if (
+      !file.name
+        .toLowerCase()
+        .endsWith(".dbf")
+    ) {
+      SweetAlert.errorAlert(
+        "Invalid File",
+        "Please select a DBF file."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    SweetAlert.confirmationAlert(
+      "Import Daily Clients",
+      `Import client data from ${file.name}?`,
+      () => {
+        importDbf(
+          file,
+          {
+            onSuccess: (
+                result
+              ) => {
+                SweetAlert.successAlert(
+                  "Import Successful",
+                  `DBF Records: ${result.totalDbfRecords}
+                  Valid Records: ${result.validRecords}
+                  Inserted: ${result.insertedRecords}`
+                );
+
+                setPage(1);
+              },
+
+            onError: (
+              error
+            ) => {
+              console.error(
+                "DBF import error:",
+                error
+              );
+
+              const message =
+                axios.isAxiosError(
+                  error
+                )
+                  ? error.response
+                      ?.data
+                      ?.message
+                  : null;
+
+              SweetAlert.errorAlert(
+                "Import Failed",
+                message ??
+                  "Failed to import DBF client data."
+              );
+            },
+          }
+        );
+      }
+    );
+
+    /*
+    * Reset so user can select
+    * the same file again later.
+    */
+    event.target.value = "";
+  };
+
   /* =========================================
      RENDER
   ========================================= */
@@ -427,24 +516,101 @@ export default function ClientsPage() {
   return (
     <div className="w-full flex flex-col gap-y-custom-32 px-custom-32 py-custom-48 ">
 
-      {/* HEADER */}
-      <ModuleHeader
-          title="SSP"
-          subtitle="Master List"
-          search={search}
-          setSearch={setSearch}
-          setPage={setPage}
-      />
+    {/* HEADER */}
+    <ModuleHeader
+      title="SSP"
+      subtitle="Master List"
+      search={search}
+      setSearch={setSearch}
+      setPage={setPage}
+    />
 
-      {/* TABS */}
-
+    {/* TABS + IMPORT */}
+    <div
+      className="
+        flex
+        items-center
+        justify-between
+        gap-custom-16
+      "
+    >
       <AppsTab
         tabs={TABS}
         activeTab={activeTab}
         changeTab={(key) =>
-          changeTab(key as TABKEY)
+          changeTab(
+            key as TABKEY
+          )
         }
       />
+
+      {activeTab ===
+        "daily-client" && (
+        <div>
+          <input
+            ref={dbfInputRef}
+            type="file"
+            accept=".dbf"
+            onChange={
+              handleDbfFileChange
+            }
+            className="hidden"
+          />
+
+          <button
+            type="button"
+            disabled={
+              isImportingDbf
+            }
+            onClick={() =>
+              dbfInputRef.current?.click()
+            }
+            className="
+              inline-flex
+              items-center
+              gap-custom-8
+              rounded-xl
+              bg-mainPrimary
+              px-custom-16
+              py-custom-8
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-lightPrimary
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+            "
+          >
+            {isImportingDbf ? (
+              <>
+                <div
+                  className="
+                    h-4
+                    w-4
+                    animate-spin
+                    rounded-full
+                    border-2
+                    border-white
+                    border-t-transparent
+                  "
+                />
+
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload
+                  size={18}
+                />
+
+                Upload DBF
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
 
       {/* LOADING */}
       {isLoading && (

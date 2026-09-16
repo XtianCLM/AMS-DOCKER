@@ -146,3 +146,11 @@ export interface CommissionDetailsResponse {
     commissionRule:CommissionRuleInfo;
   }[];
 }
+
+
+export interface ImportDbfResponse {
+  message: string;
+  totalDbfRecords: number;
+  validRecords: number;
+  insertedRecords: number;
+}

@@ -40,6 +40,8 @@ model User{
 
   reactivationRequests AgentReactivationRequest[]
 
+  agentRecoPromotion AgentRecomForPromotion[]
+
   processedCommissionScans CommissionScan[]@relation("ProcessedCommissionScan")
 
   commissionRulesCreated OverrideCommissionRule[]@relation("CommissionRuleCreator")
@@ -144,6 +146,13 @@ enum ReactivationRequestStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+enum RecoPromotionStatus {
+  PENDING
+  ACCEPTED
+  PROMOTED
+  REJECTED
 }
 
 enum ReactivationPaymentStatus {
@@ -357,6 +366,8 @@ model Agent {
 
   agentWithdrawalLedger AgentWithdrawalLedger[]
 
+  agentRecoPromotion AgentRecomForPromotion[]
+
   reactivationApprovals AgentReactivationApproval[] @relation("AgentReactivationApprovals")
 
   notifications      AgentNotification[]
@@ -482,6 +493,24 @@ model AgentReactivationRequest {
   @@map("agent_reactivation_requests")
 }
 
+model AgentRecomForPromotion {
+  id String @id @default(uuid())
+
+  agentId String
+  agent   Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  submittedByUserId Int?
+  submittedByUser   User? @relation(fields: [submittedByUserId],references: [id])
+
+  status RecoPromotionStatus @default(PENDING)
+
+  remarks String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+}
+
 
 model AgentReactivationPayment {
   id String @id @default(uuid())
@@ -563,6 +592,8 @@ model CreditWithdrawalRequest {
 
   purpose              PayoutPurpose @default(WITHDRAWAL)
 
+  receiptImg     String?
+
   commissionScanId String?
   commissionScan   CommissionScan? @relation(fields: [commissionScanId],references: [id],onDelete: SetNull)
 
@@ -573,7 +604,7 @@ model CreditWithdrawalRequest {
   payoutChannel        PayoutChannel @default(CHECK)
 
   accountName          String
-  accountNumber        String
+  accountNumber        String?
 
   status               WithdrawalStatus @default(PENDING)
 
@@ -819,12 +850,15 @@ model CommissionRule {
 model DailyClientDetails {
   id String @id @default(uuid())
   secId Int @default(autoincrement())
+  sourceClientId Int?
+  in_date  DateTime?
   createdAt   DateTime    @default(now())
   clientName String
   loanAmount Decimal? @db.Decimal(10,2)
   term        Int @default(0)
   clientStatus ClientStatus
   commissionScans CommissionScan[]
+  @@unique([sourceClientId, in_date])
 }
 
 

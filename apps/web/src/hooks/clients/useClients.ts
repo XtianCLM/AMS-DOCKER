@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getClientsService, getCommissionDetailsService } from "@/services/clients/clients.service";
+import { getClientsService, getCommissionDetailsService, importClientsDbfService } from "@/services/clients/clients.service";
 
 import {
   GetClientsParams,
@@ -35,3 +35,23 @@ export const useGetCommissionDetails = (
     enabled: !!clientId,
   });
 };
+
+
+export const useImportClientsDbf =
+  () => {
+    const queryClient =
+      useQueryClient();
+
+    return useMutation({
+      mutationFn:
+        importClientsDbfService,
+
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: [
+            "clients",
+          ],
+        });
+      },
+    });
+  };

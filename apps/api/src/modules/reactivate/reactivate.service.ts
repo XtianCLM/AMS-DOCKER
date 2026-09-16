@@ -715,7 +715,7 @@ export async function selfReactivateAgent(
             data: {
             agentId: agent.id,
 
-            branchCode: "EMB-MAIN",
+            submittedBranchCode: "EMB-MAIN",
 
             requestType:
                 "SELF_REACTIVATION",
@@ -846,7 +846,7 @@ export const submitAdminReactivationRequestService =
           data: {
             agentId: agent.id,
             requestType: "ADMIN_APPROVAL",
-            branchCode: "EMB-MAIN",
+            submittedBranchCode: "EMB-MAIN",
             status: "PENDING",
             reason:
               "Formal written reactivation request submitted for admin approval.",

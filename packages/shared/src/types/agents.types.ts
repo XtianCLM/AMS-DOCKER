@@ -360,6 +360,7 @@ export interface GetTransactionHistResponse {
 //   }[];
 // }
 
+
 export interface AgentMaintenanceCycle {
 
   id: string;
@@ -428,6 +429,7 @@ export interface AgentDetailsDownline {
   level: string;
 
   status: string;
+
 }
 
 
@@ -691,6 +693,8 @@ export type UpdateAgentDetailsPayload = {
   newUplineId?: string | null;
 };
 
+
+
 export type UpdateAgentResponse = {
   message: string;
   data: AgentEditDetails;
@@ -720,3 +724,140 @@ export const emptyAgentForm: AgentFormState = {
   telephone: "",
   secondaryTel: "",
 };
+
+
+
+
+// Agent Recommendation for promotion types
+export type PromotionRecommendationStatus =
+  | "PENDING"
+  | "PROMOTED"
+  | "REJECTED";
+
+export interface AgentPromotionRecommendationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: PromotionRecommendationStatus | "ALL";
+}
+
+
+export type ListParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+};
+
+export interface AgentPromotionRecommendationItem {
+  id: string;
+
+  status: PromotionRecommendationStatus;
+
+  remarks: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+
+  agent: {
+    id: string;
+    fullName: string;
+    agentCode: string;
+    level: string;
+    status: string;
+  };
+
+  submittedByUser: {
+    id: number;
+    name: string;
+  } | null;
+}
+
+export interface AgentPromotionRecommendationResponse {
+  data: AgentPromotionRecommendationItem[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+
+
+
+export type PromotionPayload = {
+  PromotedTo:string;
+  newUplineId?: string | null;
+}
+
+export interface PromotionApprovalResponse {
+  recommendation: {
+    id: string;
+    agentId: string;
+    status: string;
+    remarks?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+
+  agent: {
+    id: string;
+    agentCode: string;
+    fullName: string;
+    level: AgentLevel;
+    parentAgentId: string | null;
+  };
+}
+export type RejectPromotionPayload = {
+  remarks: string;
+};
+
+export type RejectPromotionParams = {
+  RecomId: string;
+  payload: RejectPromotionPayload;
+};
+
+
+
+
+
+
+// Agent WEb Acc Transaction Views
+export interface AgentMonthlyTransactionCount {
+  month: number;
+  label: string;
+  count: number;
+}
+
+export interface AgentMonthlyTransactionResponse {
+  agent: {
+    id: string;
+    fullName: string;
+    agentCode: string;
+    level: string;
+  };
+
+  year: number;
+
+  totalTransactions: number;
+
+  monthlyTransactions:
+    AgentMonthlyTransactionCount[];
+}
+
+
+
+// Agent RecomPromotion Types
+export interface CreatePromotionRecommendationPayload {
+  agentId: string;
+  remarks?: string | null;
+}
+
+export interface CreatePromotionRecommendationResponse {
+  id: string;
+  agentId: string;
+  submittedByUserId?: number | null;
+  status: string;
+  remarks?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

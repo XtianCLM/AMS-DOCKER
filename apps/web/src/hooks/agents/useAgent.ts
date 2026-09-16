@@ -1,10 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  approvePromotionRecommendation,
   checkUniqueInfoService,
+  createPromotionRecommendation,
   DroppedorSuspendedAgentStatusService,
   getAgentDetailsService,
   getAgentEditDetails,
+  getAgentMonthlyTransactions,
+  getAgentPromotionRecommendations,
   getAgentTransactionsHistService,
   getAgentTransactionsService,
   getMasterlistService,
@@ -12,6 +16,7 @@ import {
   getRemainingSalesService,
   readAllNotifService,
   registerAgentService,
+  rejectPromotionRecommendation,
   searchAgentsReactivateService,
   searchAgentsService,
   searchBranchesService,
@@ -22,12 +27,14 @@ import {
 } from "@/services/agents/agent.service";
 
 import {
+  AgentPromotionRecommendationParams,
   CheckUniqueInfoParams,
   GetAgentDetailsParams,
   GetMasterlistParams,
   GetPendingAgentParams,
   GetRemainingSalesParams,
   GetTransactionParams,
+  PromotionPayload,
   RegisterAgentSchema,
   SearchAgentsParams,
   SearchBranchParams,
@@ -481,3 +488,140 @@ export function useUpdateAgentDetails() {
   });
 }
 
+
+
+export const useAgentPromotionRecommendations =
+  (
+    params: AgentPromotionRecommendationParams
+  ) => {
+    return useQuery({
+      queryKey: [
+        "agent-promotion-recommendations",
+        params,
+      ],
+
+      queryFn: () =>
+        getAgentPromotionRecommendations(
+          params
+        ),
+    });
+  };
+
+
+
+type ApprovePromotionParams = {
+  recommendationId: string;
+  payload: PromotionPayload;
+};
+
+export const useApprovePromotionRecommendation =
+  () => {
+    const queryClient =
+      useQueryClient();
+
+    return useMutation({
+      mutationFn: ({
+        recommendationId,
+        payload,
+      }: ApprovePromotionParams) =>
+        approvePromotionRecommendation(
+          recommendationId,
+          payload
+        ),
+
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "agent-promotion-recommendations",
+          ],
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: [
+            "masterlist",
+          ],
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: [
+            "agent-details",
+          ],
+        });
+      },
+    });
+  };
+
+
+export const useRejectPromotionRecommendation =
+  () => {
+    const queryClient =
+      useQueryClient();
+
+    return useMutation({
+      mutationFn:
+        rejectPromotionRecommendation,
+
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "agent-recommendations",
+          ],
+        });
+      },
+    });
+  };
+
+
+
+export const useAgentMonthlyTransactions =
+  (
+    agentId:
+      | string
+      | null,
+    year?: number,
+    enabled = false
+  ) => {
+    return useQuery({
+      queryKey: [
+        "agent-monthly-transactions",
+        agentId,
+        year,
+      ],
+
+      queryFn: () =>
+        getAgentMonthlyTransactions(
+          agentId!,
+          year
+        ),
+
+      enabled:
+        enabled &&
+        !!agentId,
+    });
+  };
+
+
+
+export const useCreatePromotionRecommendation =
+  () => {
+    const queryClient =
+      useQueryClient();
+
+    return useMutation({
+      mutationFn:
+        createPromotionRecommendation,
+
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "agent-promotion-recommendations",
+          ],
+        });
+        queryClient.invalidateQueries({
+          queryKey: [
+            "agent-details",
+          ],
+        });
+      },
+    });
+  };

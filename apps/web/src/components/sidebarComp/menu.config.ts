@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Repeat,
   CreditCard,
+  TrendingUp,
 } from "lucide-react";
 
 import { MenuSection } from "@repo/shared";
@@ -69,6 +70,13 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: CreditCard,
         permission: "TRANSACTION_VIEW",
       },
+
+      {
+        label: "Agent Promotions",
+        path: "/Promotion",
+        icon: TrendingUp,
+        permission:"AGENT_VIEW"
+      }
     ],
   },
 ];

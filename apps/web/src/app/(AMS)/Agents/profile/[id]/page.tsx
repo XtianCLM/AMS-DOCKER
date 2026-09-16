@@ -6,7 +6,8 @@ import { Bell, X, ArrowLeft, Activity,
   Wallet,
   RefreshCw,
   ChevronLeft,
-  ChevronRight, } from "lucide-react";
+  ChevronRight,
+  Edit, } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAgentDetails, useAgentTransactions } from "@/hooks/agents/useAgent";
 import QRCode from "react-qr-code";
@@ -14,6 +15,7 @@ import AppsTab from "@/components/ui/commonUi/general.tab";
 import { AgentNotification, AgentTransaction } from "@repo/shared";
 import { socket } from "@/lib/socket";
 import { useEffect } from "react";
+import EditAgentModal from "../../components/EditAgentModal";
 
 
 type TABKEY =
@@ -302,6 +304,19 @@ export default function AgentDetailsPage() {
     agent?.notifications,
   ]);
 
+  const [
+    isEditAgentModalOpen,
+    setIsEditAgentModalOpen,
+  ] = useState(false);
+
+  const handleOpenEditAgent = () => {
+    setIsEditAgentModalOpen(true);
+  };
+
+  const handleCloseEditAgent = () => {
+    setIsEditAgentModalOpen(false);
+  };
+
   return (
     <div className="relative flex flex-col">
 
@@ -454,39 +469,92 @@ export default function AgentDetailsPage() {
                               gap-x-custom-48
                               gap-y-custom-32
               ">
-                <div className="bg-neutralLight shadow-md flex justify-center items-center p-custom-8 rounded-lg w-fit">
-                  {profilePictureUrl ? (
-                    <img
-                      src={profilePictureUrl}
-                      alt={`${agent.fullName ?? "Agent"} profile`}
-                      className="
-                        w-32
-                        h-32
-                        rounded-md
-                        object-cover
-                        border
-                        border-neutralMed
-                      "
-                    />
-                  ) : (
-                    <div
-                      className="
-                        w-28
-                        h-28
-                        rounded-full
-                        bg-neutralMed
-                        flex
-                        items-center
-                        justify-center
-                        text-sm
-                        text-neutralPrimary
-                        text-center
-                      "
-                    >
-                      No profile <br></br> picture
-                    </div>
-                  )}
+              <div
+                className="
+                  group
+                  relative
+                  w-fit
+                  overflow-hidden
+                  rounded-lg
+                  bg-neutralLight
+                  p-custom-8
+                  shadow-md
+                "
+              >
+                {profilePictureUrl ? (
+                  <img
+                    src={profilePictureUrl}
+                    alt={`${agent.fullName ?? "Agent"} profile`}
+                    className="
+                      h-32
+                      w-32
+                      rounded-md
+                      border
+                      border-neutralMed
+                      object-cover
+                    "
+                  />
+                ) : (
+                  <div
+                    className="
+                      flex
+                      h-32
+                      w-32
+                      items-center
+                      justify-center
+                      rounded-md
+                      bg-neutralMed
+                      text-center
+                      text-sm
+                      text-neutralPrimary
+                    "
+                  >
+                    No profile
+                    <br />
+                    picture
+                  </div>
+                )}
+
+                <div
+                  className="
+                    absolute
+                    inset-2
+                    flex
+                    items-center
+                    justify-center
+                    rounded-md
+                    bg-black/45
+                    opacity-0
+                    transition-opacity
+                    duration-200
+                    group-hover:opacity-100
+                  "
+                >
+                  <button
+                    type="button"
+                    onClick={handleOpenEditAgent}
+                    className="
+                          px-custom-16
+                          py-custom-8
+                          rounded-xl
+                          bg-secondary
+                          hover:bg-amber-500
+                          cursor-pointer
+                          text-white
+                          inline-flex
+                          items-end
+                          gap-custom-8
+                          text-xs
+                          font-semibold
+                          transition
+                        "
+                  >
+                    <Edit size={16} />
+
+                    Edit
+                  </button>
                 </div>
+              </div>
                 <div className="w-full flex flex-col gap-y-custom-24">
                     <div className="w-full flex justify-between items-center flex-wrap gap-custom-16">
                         <h1 className="text-secondaryHeader font-bold text-mainPrimary">{agent?.fullName}</h1>
@@ -1403,6 +1471,15 @@ export default function AgentDetailsPage() {
             </div>
           </div>
         )}
+
+        {isEditAgentModalOpen&& (
+              <EditAgentModal
+                open={isEditAgentModalOpen}
+                agentId={agent?.id ?? null}
+                onClose={handleCloseEditAgent}
+              />
+            )}
+        
       </div>
     </div>
   );

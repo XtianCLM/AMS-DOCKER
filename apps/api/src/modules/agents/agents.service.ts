@@ -14,6 +14,8 @@ import {
   AgentEditDetails,
   UpdateAgentDetailsPayload,
   RegisterAgentApiPayload,
+  ListParams,
+  PromotionPayload,
 } from "@repo/shared";
 
 import {
@@ -21,10 +23,11 @@ import {
 } from "./utils/agents.temppass"
 
 import bcrypt from "bcryptjs";
-import { AgentLevel, AgentStatus,NotificationType } from "../../../generated/prisma";
+import { AgentLevel, AgentStatus,NotificationType, RecoPromotionStatus } from "../../../generated/prisma";
 import { sendAgentApprovalEmail } from "./utils/email.service";
 
 import {
+  emitAdminPromotionRecommendation,
   emitAdminReactivationApproval,
   emitUplineReactivationApproval,
 } from "../../socket/socketEmitter";
@@ -2201,3 +2204,615 @@ export async function updateAgentDetailsService(
     agentId
   );
 }
+
+
+export const getAgentPromotionRecommendationsService =
+  async ({
+    page = 1,
+    limit = 10,
+    search,
+    status,
+  }: ListParams) => {
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.max(limit, 1);
+
+    const skip =
+      (safePage - 1) * safeLimit;
+
+    const where = {
+      ...(status &&
+      status !== "ALL"
+        ? {
+            status:
+              status as
+                | "PENDING"
+                | "PROMOTED"
+                | "REJECTED",
+          }
+        : {}),
+
+      ...(search
+        ? {
+            OR: [
+              {
+                agent: {
+                  fullName: {
+                    contains: search,
+                    mode: "insensitive" as const,
+                  },
+                },
+              },
+
+              {
+                agent: {
+                  agentCode: {
+                    contains: search,
+                    mode: "insensitive" as const,
+                  },
+                },
+              },
+
+              {
+                remarks: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] =
+      await prisma.$transaction([
+        prisma.agentRecomForPromotion.findMany({
+          where,
+
+          skip,
+
+          take: safeLimit,
+
+          orderBy: {
+            createdAt: "desc",
+          },
+
+          include: {
+            agent: {
+              select: {
+                id: true,
+                fullName: true,
+                agentCode: true,
+                level: true,
+                status: true,
+              },
+            },
+
+            submittedByUser: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        }),
+
+        prisma.agentRecomForPromotion.count({
+          where,
+        }),
+      ]);
+
+    return {
+      data,
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages:
+        Math.ceil(
+          total / safeLimit
+        ),
+    };
+  };
+
+
+
+
+export const updateRecomProm = async (
+  recomId: string,
+  payload: PromotionPayload
+) => {
+  const existingRecom =
+    await prisma.agentRecomForPromotion.findUnique({
+      where: {
+        id: recomId,
+      },
+
+      select: {
+        id: true,
+        status: true,
+
+        agent: {
+          select: {
+            id: true,
+            agentCode: true,
+            level: true,
+            status: true,
+            parentAgentId: true,
+          },
+        },
+      },
+    });
+
+  if (!existingRecom) {
+    throw new Error(
+      "Recommendation promotion not found."
+    );
+  }
+
+  if (
+    existingRecom.status !==
+    RecoPromotionStatus.PENDING
+  ) {
+    throw new Error(
+      "This recommendation has already been processed."
+    );
+  }
+
+  if (
+    !Object.values(AgentLevel).includes(
+      payload.PromotedTo as AgentLevel
+    )
+  ) {
+    throw new Error(
+      "Invalid agent level."
+    );
+  }
+
+  const requestedLevel =
+    payload.PromotedTo as AgentLevel;
+
+  validateAgentLevelChange(
+    existingRecom.agent.level,
+    requestedLevel
+  );
+
+  const isPromotedToL1 =
+    existingRecom.agent.level ===
+      AgentLevel.L2 &&
+    requestedLevel ===
+      AgentLevel.L1;
+
+  const isPromotedToL2 =
+    existingRecom.agent.level ===
+      AgentLevel.L3 &&
+    requestedLevel ===
+      AgentLevel.L2;
+
+  let validatedNewUplineId:
+    | string
+    | null =
+    existingRecom.agent.parentAgentId;
+
+  /*
+   * L3 -> L2 requires a new active L1 upline.
+   */
+  if (isPromotedToL2) {
+    if (!payload.newUplineId) {
+      throw new Error(
+        "A new L1 upline is required when promoting an L3 agent to L2."
+      );
+    }
+
+    // IMPORTANT:
+    // Compare IDs, not agentCode.
+    if (
+      payload.newUplineId ===
+      existingRecom.agent.id
+    ) {
+      throw new Error(
+        "An agent cannot be assigned as their own upline."
+      );
+    }
+
+    const newUpline =
+      await prisma.agent.findUnique({
+        where: {
+          id: payload.newUplineId,
+        },
+
+        select: {
+          id: true,
+          agentCode: true,
+          fullName: true,
+          level: true,
+          status: true,
+        },
+      });
+
+    if (!newUpline) {
+      throw new Error(
+        "Selected upline was not found."
+      );
+    }
+
+    if (
+      newUpline.level !== AgentLevel.L1
+    ) {
+      throw new Error(
+        "The selected upline must be an L1 agent."
+      );
+    }
+
+    if (
+      newUpline.status !== AgentStatus.ACTIVE
+    ) {
+      throw new Error(
+        "The selected upline must be active."
+      );
+    }
+
+    validatedNewUplineId =
+      newUpline.id;
+  }
+
+  return prisma.$transaction(
+    async (tx) => {
+      /*
+       * L2 -> L1
+       * Remove current parent.
+       *
+       * L3 -> L2
+       * Assign selected L1.
+       */
+      const nextParentAgentId =
+        isPromotedToL1
+          ? null
+          : isPromotedToL2
+          ? validatedNewUplineId
+          : existingRecom.agent
+              .parentAgentId;
+
+      const updatedAgent =
+        await tx.agent.update({
+          where: {
+            // FIXED
+            id: existingRecom.agent.id,
+          },
+
+          data: {
+            level: requestedLevel,
+
+            parentAgentId:
+              nextParentAgentId,
+          },
+
+          select: {
+            id: true,
+            agentCode: true,
+            fullName: true,
+            level: true,
+            parentAgentId: true,
+          },
+        });
+
+      /*
+       * L2 -> L1:
+       *
+       * Existing direct L3 children become L2.
+       *
+       * They remain under this agent because
+       * parentAgentId already points to this
+       * agent's ID.
+       */
+      if (isPromotedToL1) {
+        await tx.agent.updateMany({
+          where: {
+            // FIXED
+            parentAgentId:
+              existingRecom.agent.id,
+
+            level: AgentLevel.L3,
+          },
+
+          data: {
+            level: AgentLevel.L2,
+          },
+        });
+      }
+
+      const updatedRecommendation =
+        await tx.agentRecomForPromotion.update({
+          where: {
+            id: recomId,
+          },
+
+          data: {
+            status:
+              RecoPromotionStatus.PROMOTED,
+          },
+        });
+
+      return {
+        recommendation:
+          updatedRecommendation,
+
+        agent: updatedAgent,
+      };
+    }
+  );
+};
+
+
+
+export const rejectRecomPromotion = async (
+  RecomId: string,
+  remarks: string
+) => {
+  const existingRecom =
+    await prisma.agentRecomForPromotion.findUnique({
+      where: {
+        id: RecomId,
+      },
+    });
+
+  if (!existingRecom) {
+    throw new Error(
+      "Recommendation promotion not found."
+    );
+  }
+
+  if (
+    existingRecom.status !==
+    RecoPromotionStatus.PENDING
+  ) {
+    throw new Error(
+      "Only pending recommendations can be rejected."
+    );
+  }
+
+  const rejectionRemarks =
+    remarks?.trim();
+
+  if (!rejectionRemarks) {
+    throw new Error(
+      "Rejection reason is required."
+    );
+  }
+
+  const rejectedRecommendation =
+    await prisma.agentRecomForPromotion.update({
+      where: {
+        id: RecomId,
+      },
+      data: {
+        status:
+          RecoPromotionStatus.REJECTED,
+
+        remarks:
+          rejectionRemarks,
+      },
+      include: {
+        agent: {
+          select: {
+            id: true,
+            agentCode: true,
+            fullName: true,
+            level: true,
+          },
+        },
+      },
+    });
+
+  return rejectedRecommendation;
+};
+
+
+
+
+
+// Function to fetch agent transaction in agent webpage account 
+
+export const getAgentMonthlyTransactionCounts = async (
+  agentId: string,
+  year?: number
+) => {
+  const targetYear =
+    year ?? new Date().getFullYear();
+
+  const agent =
+    await prisma.agent.findUnique({
+      where: {
+        id: agentId,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        agentCode: true,
+        level: true,
+      },
+    });
+
+  if (!agent) {
+    throw new Error(
+      "Agent not found."
+    );
+  }
+
+  const startOfYear =
+    new Date(
+      targetYear,
+      0,
+      1
+    );
+
+  const startOfNextYear =
+    new Date(
+      targetYear + 1,
+      0,
+      1
+    );
+
+  const transactions =
+    await prisma.commissionTransaction.findMany({
+      where: {
+        receiverAgentId:
+          agentId,
+
+        createdAt: {
+          gte: startOfYear,
+          lt: startOfNextYear,
+        },
+      },
+
+      select: {
+        createdAt: true,
+      },
+    });
+
+  const counts =
+    Array(12).fill(0);
+
+  for (
+    const transaction of
+    transactions
+  ) {
+    const monthIndex =
+      transaction.createdAt.getMonth();
+
+    counts[monthIndex] += 1;
+  }
+
+  const monthlyTransactions =
+    counts.map(
+      (count, index) => ({
+        month: index + 1,
+
+        label:
+          new Date(
+            targetYear,
+            index,
+            1
+          ).toLocaleString(
+            "en-US",
+            {
+              month: "long",
+            }
+          ),
+
+        count,
+      })
+    );
+
+  const totalTransactions =
+    counts.reduce(
+      (
+        total,
+        count
+      ) => total + count,
+      0
+    );
+
+  return {
+    agent,
+    year:
+      targetYear,
+
+    totalTransactions,
+
+    monthlyTransactions,
+  };
+};
+
+
+
+// Agent Recommendation Button from Upline Downlines 
+
+export const createPromotionRecommendationService = async (
+  agentId: string,
+  submittedByUserId: number,
+  remarks?: string
+) => {
+  const agent = await prisma.agent.findUnique({
+    where: {
+      id: agentId,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      agentCode: true,
+      level: true,
+      status: true,
+    },
+  });
+
+  if (!agent) {
+    throw new Error("Agent not found.");
+  }
+
+  const existingRecommendation =
+    await prisma.agentRecomForPromotion.findFirst({
+      where: {
+        agentId,
+        status: RecoPromotionStatus.PENDING,
+      },
+    });
+
+  if (existingRecommendation) {
+    throw new Error(
+      "This agent already has a pending promotion recommendation."
+    );
+  }
+
+  const recommendation =
+    await prisma.agentRecomForPromotion.create({
+      data: {
+        agentId,
+        submittedByUserId,
+        remarks: remarks?.trim() || null,
+        status: RecoPromotionStatus.PENDING,
+      },
+
+      include: {
+        agent: {
+          select: {
+            id: true,
+            fullName: true,
+            agentCode: true,
+            level: true,
+            status: true,
+          },
+        },
+
+        submittedByUser: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+  emitAdminPromotionRecommendation({
+    recommendationId:
+      recommendation.id,
+
+    agentId:
+      recommendation.agent.id,
+
+    agentName:
+      recommendation.agent.fullName,
+
+    agentCode:
+      recommendation.agent.agentCode,
+
+    level:
+      recommendation.agent.level,
+
+    status:
+      recommendation.status,
+
+    createdAt:
+      recommendation.createdAt,
+  });
+
+  return recommendation;
+};

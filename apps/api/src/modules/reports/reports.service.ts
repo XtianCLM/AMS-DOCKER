@@ -337,6 +337,9 @@ export const getTopEarningAgentsService = async ({
       _sum: {
         commissionAmount: true,
       },
+      _count: {
+        _all: true,
+      },
       orderBy: {
         _sum: {
           commissionAmount: "desc",
@@ -378,6 +381,8 @@ export const getTopEarningAgentsService = async ({
     totalCommission: Number(
       item._sum.commissionAmount ?? 0
     ),
+    totalTransactions:
+          item._count._all,
   }));
 
   return {

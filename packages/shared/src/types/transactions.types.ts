@@ -1,4 +1,4 @@
-export type ListParams = {
+export type TransacListParams = {
   userId?: number;
   page?: number;
   limit?: number;

@@ -20,5 +20,8 @@ export const maintenanceReactivationCron =
           error
         );
       }
+    },
+    {
+    timezone: "Asia/Manila",
     }
   );

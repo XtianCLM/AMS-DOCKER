@@ -1,4 +1,4 @@
-import { ListParams } from "@repo/shared";
+import {TransacListParams } from "@repo/shared";
 import prisma from "../../lib/prisma";
 
 
@@ -17,7 +17,7 @@ export const getAdminReactivationPaymentsService = async ({
   limit = 10,
   search,
   status,
-}: ListParams) => {
+}: TransacListParams) => {
   const pagination = getPagination(page, limit);
 
   const where: any = {
@@ -163,7 +163,7 @@ export const getAdminWithdrawalsService = async ({
   limit = 10,
   search,
   status,
-}: ListParams) => {
+}: TransacListParams) => {
     const user =
       await prisma.user.findUnique({
         where: {

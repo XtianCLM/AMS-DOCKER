@@ -27,3 +27,7 @@ export * from "./types/modalTypes/modal.types"
 export * from "./types/componentsTypes/universalDesign.types"
 export * from "./types/socketTypes/socket.types"
 export * from "./types/webhooks.types"
+
+
+// Df File 
+export * from "./types/dfTypes/dfFile.types"

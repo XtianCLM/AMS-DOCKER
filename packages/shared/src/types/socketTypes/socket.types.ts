@@ -65,3 +65,14 @@ export interface AdminReactivationWithdrawSocketPayload {
   createdAt: Date;
 }
 
+
+export interface AdminPromotionRecommendationSocketPayload {
+  recommendationId: string;
+  agentId: string;
+  agentName: string;
+  agentCode: string;
+  level: string;
+  status: string;
+  createdAt: Date | string;
+}
+

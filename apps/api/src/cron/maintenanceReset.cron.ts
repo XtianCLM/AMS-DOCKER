@@ -315,5 +315,8 @@ export const maintenanceResetCron =
           error
         );
       }
+    },
+    {
+    timezone: "Asia/Manila",
     }
   );

@@ -44,3 +44,32 @@ export const rejectWithdrawalRequest = async ({
     }
   );
 };
+
+
+export const uploadWithdrawalReceipt = async ({
+  withdrawalId,
+  receipt,
+}: {
+  withdrawalId: string;
+  receipt: File;
+}) => {
+  const formData = new FormData();
+
+  formData.append(
+    "receipt",
+    receipt
+  );
+
+  const response = await api.post(
+    `/withdrawals/${withdrawalId}/receipt`,
+    formData,
+    {
+      headers: {
+        "Content-Type":
+          "multipart/form-data",
+      },
+    }
+  );
+
+  return response.data.data;
+};

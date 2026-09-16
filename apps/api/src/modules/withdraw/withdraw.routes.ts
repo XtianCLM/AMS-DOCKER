@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { authenticateToken } from "../auth/auth.middleware";
 import {
-  approveWithdrawalRequestController,
   createMyWithdrawalRequestController,
-  // handleWithdrawalWebhookController,
-  rejectWithdrawalController,
-  retryWithdrawalRequestController,
+  uploadWithdrawalReceiptController,
 } from "./withdraw.controller";
+import { uploadWithdrawalReceipt } from "./utils/uploadReceipt.middleware";
 
 const router = Router();
 
@@ -17,27 +15,9 @@ router.post(
 );
 
 router.post(
-  "/admin/:withdrawalId/approve",
-  authenticateToken,
-  approveWithdrawalRequestController
+  "/:withdrawalId/receipt",
+  uploadWithdrawalReceipt.single("receipt"),
+  uploadWithdrawalReceiptController
 );
-
-router.post(
-  "/admin/:withdrawalId/retry",
-  authenticateToken,
-  retryWithdrawalRequestController
-);
-
-router.post(
-  "/admin/:withdrawalId/reject",
-  authenticateToken,
-  rejectWithdrawalController
-);
-
-// NO authenticateToken here. Xendit will not send your JWT.
-// router.post(
-//   "/webhooks/xendit",
-//   handleWithdrawalWebhookController
-// );
 
 export default router;

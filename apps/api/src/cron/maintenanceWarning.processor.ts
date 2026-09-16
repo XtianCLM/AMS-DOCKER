@@ -1,4 +1,4 @@
-import {   NotificationType, ReactivationRequestStatus, ReactivationType } from "../../generated/prisma";
+import {   ClientStatus, NotificationType, ReactivationRequestStatus, ReactivationType } from "../../generated/prisma";
 import prisma from "../lib/prisma";
 import { sendSmsToGateway } from "../services/sms/sms.services";
 import {
@@ -1210,5 +1210,53 @@ export async function processProbationRequests() {
         error
       );
     }
+  }
+}
+
+
+
+export async function processNewClientsToPending() {
+  const now = new Date();
+
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+
+  try {
+    const result =
+      await prisma.dailyClientDetails.updateMany({
+        where: {
+          clientStatus:
+            ClientStatus.NEW,
+
+          createdAt: {
+            lt: startOfToday,
+          },
+        },
+
+        data: {
+          clientStatus:
+            ClientStatus.PENDING,
+        },
+      });
+
+    console.log(
+      `Updated ${result.count} NEW client(s) to PENDING.`
+    );
+
+    return result;
+  } catch (error) {
+    console.error(
+      "Failed to update NEW clients to PENDING:",
+      error
+    );
+
+    throw error;
   }
 }
