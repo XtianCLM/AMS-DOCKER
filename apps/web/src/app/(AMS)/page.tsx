@@ -42,6 +42,7 @@ import { useAuth } from "@/components/context/UserContext";
 import SweetAlert from "@/components/modal/Swal";
 import { useSearchEligibleAgents } from "@/hooks/general/useGeneral";
 import axios from "axios";
+import { getAssetUrl } from "@/lib/getAssetUrl";
 
 /* =========================================
    QR SCANNER
@@ -300,15 +301,24 @@ export default function ClientsPage() {
     "http://localhost:5000";
 
   const profilePictureUrl =
-    scannedAgent?.agent.profilePicture
-      ? `${API_BASE_URL}${scannedAgent?.agent.profilePicture.trim()}`
-      : null;
+    // scannedAgent?.agent.profilePicture
+    //   ? `${API_BASE_URL}${scannedAgent?.agent.profilePicture.trim()}`
+    //   : null;
+    getAssetUrl(
+        scannedAgent?.agent.profilePicture
+      );
 
+
+  // const detailsProfilePictureUrl =
+  //   directTransaction?.sourceAgent.profilePicture
+  //     ? `${API_BASE_URL}${directTransaction?.sourceAgent.profilePicture.trim()}`
+  //     : null;
 
   const detailsProfilePictureUrl =
-    directTransaction?.sourceAgent.profilePicture
-      ? `${API_BASE_URL}${directTransaction?.sourceAgent.profilePicture.trim()}`
-      : null;
+      getAssetUrl(
+        directTransaction?.sourceAgent.profilePicture
+      );
+      
 
   const handleConfirmCommission = () => {
       if (!scannedAgent || !user?.id) {

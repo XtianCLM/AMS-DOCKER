@@ -6,6 +6,7 @@ import SweetAlert from "@/components/modal/Swal";
 import ModuleHeader from "@/components/ui/commonUi/page.header";
 import { useAdminWithdrawals } from "@/hooks/transaction/useTransaction";
 import { useApproveWithdrawalRequest, useRejectFailedWithdrawalRequest } from "@/hooks/withdrawal/useWithdrawal";
+import { getAssetUrl } from "@/lib/getAssetUrl";
 import { socket } from "@/lib/socket";
 import { AdminWithdrawalRequest } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
@@ -84,6 +85,13 @@ export default function Transaction() {
         
     const [openReceiptQR, setOpenReceiptQR] =
         useState(false);
+
+    
+
+    const receiptImgUrl =
+    getAssetUrl(
+        selectedWithdraw?.receiptImg
+    );
 
     const handleViewWithrawDetails = (
     withdraw:AdminWithdrawalRequest
@@ -727,6 +735,46 @@ export default function Transaction() {
                                     </h3>
                                 </div>
                             </div>
+                            <div className="bg-neutralLight rounded-xl p-custom-16 flex justify-center items-center flex-col gap-custom-8">
+                                <p className="text-xs text-neutralPrimary">
+                                        Commission Receipt
+                                </p>
+                                {receiptImgUrl ? (
+                                <img
+                                    src={receiptImgUrl}
+                                    alt={`${selectedWithdraw.accountName ?? "Agent"} profile`}
+                                    className="
+                                    h-32
+                                    w-32
+                                    rounded-md
+                                    border
+                                    border-neutralMed
+                                    object-cover
+                                    "
+                                />
+                                ) : (
+                                <div
+                                    className="
+                                    flex
+                                    h-32
+                                    w-32
+                                    items-center
+                                    justify-center
+                                    rounded-md
+                                    bg-neutralMed
+                                    text-center
+                                    text-sm
+                                    text-neutralPrimary
+                                    "
+                                >
+                                    No Receipt 
+                                    <br />
+                                    Submitted
+                                </div>
+                                )}
+
+                            </div>
+
 
                             {selectedWithdraw.status === "PENDING" && (
                             <div className="flex flex-col gap-custom-16">

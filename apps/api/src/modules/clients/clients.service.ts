@@ -119,18 +119,20 @@ export const getCommissionDetails = async (
 // -----------------------------------------------------
 // IMPORT CLIENTS FROM DBF
 // -----------------------------------------------------
-
 interface ImportDbfParams {
   buffer: Buffer;
+  uploadedById: number;
 }
 
 export const importClientsFromDbf = async ({
   buffer,
+  uploadedById,
 }: ImportDbfParams) => {
-  const tempFilePath = path.join(
-    os.tmpdir(),
-    `${crypto.randomUUID()}.dbf`
-  );
+  const tempFilePath =
+    path.join(
+      os.tmpdir(),
+      `${crypto.randomUUID()}.dbf`
+    );
 
   try {
     await fs.writeFile(
@@ -158,7 +160,9 @@ export const importClientsFromDbf = async ({
           client.IN_DATE
       );
 
-    if (validClients.length === 0) {
+    if (
+      validClients.length === 0
+    ) {
       throw new Error(
         "No valid client records found."
       );
@@ -174,9 +178,9 @@ export const importClientsFromDbf = async ({
             client.NAME.trim(),
 
           in_date:
-            client.IN_DATE
-              ? new Date(client.IN_DATE)
-              : null,
+            new Date(
+              client.IN_DATE
+            ),
 
           loanAmount:
             client.LOANAMT ?? 0,
@@ -186,13 +190,14 @@ export const importClientsFromDbf = async ({
 
           clientStatus:
             ClientStatus.NEW,
+
+          uploadedById,
         })
       );
 
     const result =
       await prisma.dailyClientDetails.createMany({
         data,
-
         skipDuplicates: true,
       });
 
@@ -212,6 +217,7 @@ export const importClientsFromDbf = async ({
 
       duplicateRecords,
     };
+
   } finally {
     await fs
       .unlink(tempFilePath)

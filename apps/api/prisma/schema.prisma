@@ -40,6 +40,8 @@ model User{
 
   reactivationRequests AgentReactivationRequest[]
 
+  dailyClientUploads DailyClientDetails[]
+
   agentRecoPromotion AgentRecomForPromotion[]
 
   processedCommissionScans CommissionScan[]@relation("ProcessedCommissionScan")
@@ -848,17 +850,26 @@ model CommissionRule {
 
 
 model DailyClientDetails {
-  id String @id @default(uuid())
-  secId Int @default(autoincrement())
+  id             String   @id @default(uuid())
+  secId          Int      @default(autoincrement())
+
   sourceClientId Int?
-  in_date  DateTime?
-  createdAt   DateTime    @default(now())
-  clientName String
-  loanAmount Decimal? @db.Decimal(10,2)
-  term        Int @default(0)
-  clientStatus ClientStatus
+  in_date        DateTime?
+  createdAt      DateTime @default(now())
+
+  clientName     String
+  loanAmount     Decimal? @db.Decimal(10,2)
+  term           Int      @default(0)
+  clientStatus   ClientStatus
+
+  uploadedById Int?
+  uploadedBy User? @relation(fields: [uploadedById], references: [id])
+
   commissionScans CommissionScan[]
-  @@unique([sourceClientId, in_date])
+
+  @@unique([sourceClientId,uploadedById])
+
+  @@index([uploadedById])
 }
 
 

@@ -123,7 +123,7 @@ export interface AdminWithdrawalRequest {
   remarks?: string | null;
   createdAt: string;
   updatedAt: string;
-
+  receiptImg?: string | null;
 
 
   companyExpenses?: CompanyExpenseLog[];

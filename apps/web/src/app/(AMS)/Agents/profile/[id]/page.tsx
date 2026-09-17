@@ -16,6 +16,7 @@ import { AgentNotification, AgentTransaction } from "@repo/shared";
 import { socket } from "@/lib/socket";
 import { useEffect } from "react";
 import EditAgentModal from "../../components/EditAgentModal";
+import { getAssetUrl } from "@/lib/getAssetUrl";
 
 
 type TABKEY =
@@ -223,14 +224,12 @@ export default function AgentDetailsPage() {
 
     }, []);
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL ??
-    "http://localhost:5000";
+
 
   const profilePictureUrl =
-    agent?.profilePicture
-      ? `${API_BASE_URL}${agent.profilePicture.trim()}`
-      : null;
+   getAssetUrl(
+           agent?.profilePicture
+       );
 
   const {
       data: transactionData,

@@ -97,7 +97,6 @@ export const importClientsDbfController = async (
   res: Response
 ) => {
   try {
-
     if (!req.file) {
       return res
         .status(400)
@@ -107,10 +106,16 @@ export const importClientsDbfController = async (
         });
     }
 
+    const userId =
+      (req as any).user.id;
+
     const result =
       await importClientsFromDbf({
         buffer:
           req.file.buffer,
+
+        uploadedById:
+          userId,
       });
 
     return res

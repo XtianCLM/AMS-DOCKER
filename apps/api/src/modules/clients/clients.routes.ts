@@ -11,6 +11,7 @@ import {
 import {
   uploadDbf
 } from "../../middleware/uploadDbf";
+import { authenticateToken } from "../auth/auth.middleware";
 
 
 const router = Router();
@@ -34,6 +35,7 @@ router.get(
 router.post(
   "/import-dbf",
   uploadDbf.single("file"),
+  authenticateToken,
   importClientsDbfController
 );
 
