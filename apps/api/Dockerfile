@@ -55,6 +55,6 @@ RUN mkdir -p /app/apps/api/uploads
 
 WORKDIR /app/apps/api
 
-EXPOSE 5000
+EXPOSE 8400
 
 CMD ["node", "dist/server.js"]
