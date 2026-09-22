@@ -503,7 +503,10 @@ export default function AgentLayout({
       
                 <form
                     onSubmit={form.handleSubmit(
-                      onSubmit
+                      onSubmit,
+                      (errors) => {
+                        console.log("FORM VALIDATION FAILED:", errors);
+                      }
                     )}
                     className="flex flex-col gap-y-custom-16 w-full px-custom-32 pb-custom-32"
                   >
@@ -515,14 +518,27 @@ export default function AgentLayout({
                       {...form.register("email")}
                     />
                   </div>
-                  <div className="flex flex-col gap-y-custom-8">
-                    <label htmlFor="name" className="font-bold text-xs">Telephone Number</label>
-                    <input
+                 <div className="flex flex-col gap-y-custom-8">
+                  <label
+                    htmlFor="agentTel"
+                    className="font-bold text-xs"
+                  >
+                    Telephone Number
+                  </label>
+
+                  <input
+                    id="agentTel"
                     className="bg-neutralLight border border-neutralMed py-3 px-custom-16 rounded-lg"
-                      placeholder="Telephone"
-                      {...form.register("agentTel")}
-                    />
-                  </div>
+                    placeholder="Telephone"
+                    {...form.register("agentTel")}
+                  />
+
+                  {form.formState.errors.agentTel && (
+                    <p className="text-negative text-xs">
+                      {form.formState.errors.agentTel.message}
+                    </p>
+                  )}
+                </div>
                   <div className="relative flex flex-col gap-y-custom-8">
                     <label
                       htmlFor="password"

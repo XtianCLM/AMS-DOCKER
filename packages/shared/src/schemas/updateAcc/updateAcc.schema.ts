@@ -9,8 +9,11 @@ export const updateAccSchema = z
 
     agentTel: z
       .string()
-      .min(11, "Phone number must be 11 digits")
-      .max(11, "Phone number must be 11 digits"),
+      .trim()
+      .regex(
+        /^\+639\d{9}$/,
+        "Enter a valid Philippine mobile number."
+      ),
 
     password: z.string().optional(),
 
