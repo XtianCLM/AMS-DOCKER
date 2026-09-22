@@ -54,11 +54,17 @@ export default function AgentLayout({
   const onSubmit = async (
     data: UpdateAgentAccSchema
   ) => {
-
     try {
 
+      const payload = {
+        ...data,
+
+        agentTel:
+          `+63${data.agentTel}`,
+      };
+
       await updateAgentAccount(
-        data
+        payload
       );
 
       await refreshUser();
@@ -71,7 +77,6 @@ export default function AgentLayout({
           data.agentTel,
 
         password: "",
-
         confirmPassword: "",
       });
 
@@ -80,9 +85,11 @@ export default function AgentLayout({
         "Account updated successfully."
       );
 
-      handleCloseAgentUpdate();
+      setAgentUpdate(false);
 
-    } catch{
+    } catch (error) {
+
+      console.error(error);
 
       SweetAlert.errorAlert(
         "Error",
@@ -95,7 +102,13 @@ export default function AgentLayout({
     if (agentUpdate && user?.agent) {
       form.reset({
         email: user.agent.email ?? "",
-        agentTel: user.agent.telephone ?? "",
+        
+        agentTel:
+          user.agent.telephone?.replace(
+            /^\+63/,
+            ""
+          ) ?? "",
+
         password: "",
         confirmPassword: "",
       });
@@ -193,30 +206,36 @@ export default function AgentLayout({
 
   };
 
-  const handleCloseAgentUpdate = () => {
+const handleCloseAgentUpdate = () => {
 
-    if (!form.formState.isDirty) {
+  if (!form.formState.isDirty) {
+    setAgentUpdate(false);
+    return;
+  }
+
+  SweetAlert.confirmationAlert(
+    "Discard Changes?",
+    "Any unsaved changes will be lost.",
+    () => {
+
+      form.reset({
+        email:
+          user?.agent?.email ?? "",
+
+        agentTel:
+          user?.agent?.telephone?.replace(
+            /^\+63/,
+            ""
+          ) ?? "",
+
+        password: "",
+        confirmPassword: "",
+      });
+
       setAgentUpdate(false);
-      return;
     }
-
-    SweetAlert.confirmationAlert(
-      "Discard Changes?",
-      "Any unsaved changes will be lost.",
-      () => {
-
-        form.reset({
-          email: user?.agent?.email ?? "",
-          agentTel:
-            user?.agent?.telephone ?? "",
-          password: "",
-          confirmPassword: "",
-        });
-
-        setAgentUpdate(false);
-      }
-    );
-  };
+  );
+};
 
 
 
@@ -518,27 +537,61 @@ export default function AgentLayout({
                       {...form.register("email")}
                     />
                   </div>
-                 <div className="flex flex-col gap-y-custom-8">
-                  <label
-                    htmlFor="agentTel"
-                    className="font-bold text-xs"
-                  >
-                    Telephone Number
-                  </label>
+                  <div className="flex flex-col gap-y-custom-8">
 
-                  <input
-                    id="agentTel"
-                    className="bg-neutralLight border border-neutralMed py-3 px-custom-16 rounded-lg"
-                    placeholder="Telephone"
-                    {...form.register("agentTel")}
-                  />
+                    <label
+                      htmlFor="agentTel"
+                      className="font-bold text-xs"
+                    >
+                      Telephone Number
+                    </label>
 
-                  {form.formState.errors.agentTel && (
-                    <p className="text-negative text-xs">
-                      {form.formState.errors.agentTel.message}
-                    </p>
-                  )}
-                </div>
+                    <div className="flex w-full">
+
+                      <span
+                        className="
+                          flex
+                          items-center
+                          px-custom-16
+                          bg-neutralMed
+                          border
+                          border-r-0
+                          border-neutralMed
+                          rounded-l-lg
+                          text-sm
+                        "
+                      >
+                        +63
+                      </span>
+
+                      <input
+                        id="agentTel"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        className="
+                          w-full
+                          bg-neutralLight
+                          border
+                          border-neutralMed
+                          py-3
+                          px-custom-16
+                          rounded-r-lg
+                          outline-none
+                        "
+                        placeholder="9XXXXXXXXX"
+                        {...form.register("agentTel")}
+                      />
+
+                    </div>
+
+                    {form.formState.errors.agentTel && (
+                      <p className="text-negative text-xs">
+                        {form.formState.errors.agentTel.message}
+                      </p>
+                    )}
+
+                  </div>
                   <div className="relative flex flex-col gap-y-custom-8">
                     <label
                       htmlFor="password"

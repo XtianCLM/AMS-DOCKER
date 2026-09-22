@@ -11,7 +11,7 @@ export const updateAccSchema = z
       .string()
       .trim()
       .regex(
-        /^\+639\d{9}$/,
+        /^9\d{9}$/,
         "Enter a valid Philippine mobile number."
       ),
 
