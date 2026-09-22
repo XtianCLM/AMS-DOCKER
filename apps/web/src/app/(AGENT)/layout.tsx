@@ -12,7 +12,7 @@ import SweetAlert from "@/components/modal/Swal";
 import { getErrorMessage } from "@/components/helper/errorHelper";
 import MainModal from "@/components/modal/mainModal";
 import { useForm } from "react-hook-form";
-import { updateAccSchema, UpdateAgentAccSchema } from "@repo/shared";
+import { UpdateAgentAccSchema, updateAgentFormSchema, UpdateAgentFormSchema } from "@repo/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUpdateAgentAccount } from "@/hooks/agents/useAgent";
 import PermissionGuard from "@/components/guard/PermissionGuard";
@@ -40,9 +40,9 @@ export default function AgentLayout({
 
 
   const form =
-        useForm<UpdateAgentAccSchema>({
+        useForm<UpdateAgentFormSchema>({
           resolver:
-            zodResolver(updateAccSchema),
+            zodResolver(updateAgentFormSchema),
     
           defaultValues: {
             email: "",
@@ -51,31 +51,22 @@ export default function AgentLayout({
           }
         })
 
-  const onSubmit = async (
-    data: UpdateAgentAccSchema
-  ) => {
+    const onSubmit = async (
+      data: UpdateAgentFormSchema
+    ) => {
     try {
-
-      const payload = {
+      const payload: UpdateAgentAccSchema = {
         ...data,
-
-        agentTel:
-          `+63${data.agentTel}`,
+        agentTel: `+63${data.agentTel}`,
       };
 
-      await updateAgentAccount(
-        payload
-      );
+      await updateAgentAccount(payload);
 
       await refreshUser();
 
       form.reset({
-        email:
-          data.email ?? "",
-
-        agentTel:
-          data.agentTel,
-
+        email: data.email ?? "",
+        agentTel: data.agentTel,
         password: "",
         confirmPassword: "",
       });
@@ -86,9 +77,7 @@ export default function AgentLayout({
       );
 
       setAgentUpdate(false);
-
     } catch (error) {
-
       console.error(error);
 
       SweetAlert.errorAlert(
