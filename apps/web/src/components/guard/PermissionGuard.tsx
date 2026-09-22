@@ -5,31 +5,46 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/context/UserContext";
 
 interface Props {
-    permission: string;
-    children: React.ReactNode;
+  permission: string;
+  children: React.ReactNode;
 }
 
 export default function PermissionGuard({
-    permission,
-    children,
+  permission,
+  children,
 }: Props) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-    const { user, loading } = useAuth();
-    const router = useRouter();
+  useEffect(() => {
+    if (loading) return;
 
-    useEffect(() => {
-        if (loading) return;
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
-        if (!user?.permissions.includes(permission)) {
-            router.replace("/unauthorized");
-        }
+    if (!user.permissions.includes(permission)) {
+      router.replace("/unauthorized");
+    }
+  }, [
+    loading,
+    user,
+    permission,
+    router,
+  ]);
 
-    }, [loading, user]);
+  if (loading) {
+    return null;
+  }
 
-    if (loading) return null;
+  if (!user) {
+    return null;
+  }
 
-    if (!user?.permissions.includes(permission))
-        return null;
+  if (!user.permissions.includes(permission)) {
+    return null;
+  }
 
-    return children;
+  return <>{children}</>;
 }
