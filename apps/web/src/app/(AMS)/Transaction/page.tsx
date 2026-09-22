@@ -8,7 +8,7 @@ import { useAdminWithdrawals } from "@/hooks/transaction/useTransaction";
 import { useApproveWithdrawalRequest, useRejectFailedWithdrawalRequest } from "@/hooks/withdrawal/useWithdrawal";
 import { getAssetUrl } from "@/lib/getAssetUrl";
 import { socket } from "@/lib/socket";
-import { AdminWithdrawalRequest } from "@repo/shared";
+import { AdminWithdrawalRequest, AdminReactivationWithdrawSocketPayload } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Inspect } from "lucide-react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
@@ -24,29 +24,7 @@ export default function Transaction() {
 
     const queryClient = useQueryClient();
 
-    useEffect(() => {
-        socket.emit("join-admin-payment-room");
 
-        const handlePaymentUpdated = () => {
-            queryClient.invalidateQueries({
-                queryKey: ["admin-reactivation-payments"],
-            });
-        };
-
-        socket.on(
-            "admin-payment-updated",
-            handlePaymentUpdated
-        );
-
-        return () => {
-            socket.off(
-                "admin-payment-updated",
-                handlePaymentUpdated
-            );
-        };
-
-
-    }, [queryClient]);
 
     const searchParam = searchParams.get("search") || "";
     
@@ -86,7 +64,74 @@ export default function Transaction() {
     const [openReceiptQR, setOpenReceiptQR] =
         useState(false);
 
-    
+        useEffect(() => {
+
+        socket.emit(
+            "join-admin-withdraw-room"
+        );
+
+        const handleWithdrawUpdated = (
+            payload:
+                AdminReactivationWithdrawSocketPayload
+        ) => {
+
+            console.log(
+                "Withdrawal socket update:",
+                payload
+            );
+
+            // Refresh transaction table
+            queryClient.invalidateQueries({
+                queryKey: [
+                    "admin-withdrawals"
+                ],
+            });
+
+            // Only close QR modal if the
+            // uploaded receipt belongs to
+            // the withdrawal currently open.
+            if (
+                receiptWithdrawalId &&
+                payload.withdrawId ===
+                    receiptWithdrawalId &&
+                payload.status === "COMPLETED"
+            ) {
+
+                setOpenReceiptQR(false);
+
+                setReceiptWithdrawalId(
+                    null
+                );
+
+                setSelectedWithdraw(
+                    null
+                );
+
+                SweetAlert.successAlert(
+                    "Receipt Uploaded",
+                    "The transaction receipt was uploaded successfully and the withdrawal has been completed."
+                );
+            }
+        };
+
+        socket.on(
+            "admin-withdraw-updated",
+            handleWithdrawUpdated
+        );
+
+        return () => {
+
+            socket.off(
+                "admin-withdraw-updated",
+                handleWithdrawUpdated
+            );
+
+        };
+
+    }, [
+        queryClient,
+        receiptWithdrawalId,
+    ]);
 
     const receiptImgUrl =
     getAssetUrl(
