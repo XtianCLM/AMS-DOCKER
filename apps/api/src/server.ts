@@ -36,6 +36,8 @@ const allowedOrigins = [
   process.env.NEXT_PUBLIC_API_URL,
   process.env
     .NEXT_PUBLIC_API_LOCAL_URL,
+  process.env
+    .FRONTEND_URL,
 ].filter(Boolean) as string[];
 
 /* =========================
