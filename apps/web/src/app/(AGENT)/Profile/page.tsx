@@ -1150,6 +1150,8 @@ export default function AgentProfile() {
                 )}
               </div>
 
+            {/* DESKTOP TABLE */}
+            <div className="hidden md:block">
               <table className="w-full border-collapse">
                 <thead className="bg-white text-tertiaryHeader">
                   <tr className="text-neutralPrimary">
@@ -1168,8 +1170,6 @@ export default function AgentProfile() {
                     <th className="text-left px-custom-24 py-4 font-semibold">
                       Actions
                     </th>
-
-                 
                   </tr>
                 </thead>
 
@@ -1177,7 +1177,7 @@ export default function AgentProfile() {
                   {filteredDownlines.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={3}
+                        colSpan={4}
                         className="text-center py-10 text-neutralPrimary"
                       >
                         {agent?.level === "L1"
@@ -1229,9 +1229,8 @@ export default function AgentProfile() {
                           </span>
                         </td>
 
-
-                        <td className="flex w-fit gap-custom-8 justify-end py-custom-16">
-                            
+                        <td className="py-custom-16">
+                          <div className="flex gap-custom-8 justify-start pr-custom-24">
                             <button
                               type="button"
                               onClick={() => {
@@ -1250,7 +1249,6 @@ export default function AgentProfile() {
                               className="
                                 inline-flex
                                 items-center
-                                gap-custom-8
                                 rounded-lg
                                 bg-lightPrimary
                                 px-custom-16
@@ -1292,96 +1290,289 @@ export default function AgentProfile() {
                             >
                               Recommend Promotion
                             </button>
-
+                          </div>
                         </td>
-
-                     
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
+            </div>
 
+            {/* MOBILE CARDS */}
+            <div className="md:hidden p-custom-16 flex flex-col gap-custom-16">
+              {filteredDownlines.length === 0 ? (
                 <div
-                className="
-                  flex
-                  flex-col
-                  md:flex-row
-                  md:items-center
-                  justify-between
-                  px-custom-24
-                  py-custom-24
-                  border-t
-                  border-neutralMed
-                "
-              >
-                <div className="text-sm text-neutralPrimary">
-                  Showing{" "}
-                  <span className="font-semibold">
-                    {paginatedDownlines.length}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold">
-                    {filteredDownlines.length}
-                  </span>{" "}
-                  downlines
+                  className="
+                    rounded-xl
+                    border
+                    border-dashed
+                    border-neutralMed
+                    p-custom-24
+                    text-center
+                    text-sm
+                    text-neutralPrimary
+                  "
+                >
+                  {agent?.level === "L1"
+                    ? `No ${downlineTab} downline agents found.`
+                    : "No downline agents found."}
                 </div>
+              ) : (
+                paginatedDownlines.map((downline) => (
+                  <div
+                    key={downline.id}
+                    className="
+                      rounded-xl
+                      border
+                      border-neutralMed
+                      bg-white
+                      p-custom-16
+                      shadow-sm
+                      flex
+                      flex-col
+                      gap-custom-16
+                    "
+                  >
+                    
 
-                <div className="flex items-center gap-custom-16 text-neutralPrimary">
-                    <button
-                      type="button"
-                      disabled={validDownlinePage === 1}
-                      onClick={() =>
-                        setDownlinePage((previous) =>
-                          Math.max(previous - 1, 1)
-                        )
-                      }
+                    <div
                       className="
+                        bg-neutralLight
+                        rounded-lg
                         px-custom-16
                         py-custom-8
-                        rounded-md
-                        border
-                        border-neutralMed
-                        disabled:opacity-50
-                        disabled:cursor-not-allowed
                       "
                     >
-                      Previous
-                  </button>
+                    
 
-                 <span className="font-semibold text-sm ">
-                    {validDownlinePage} /{" "}
-                    {totalDownlinePages}
-                  </span>
+                       <p className="text-xs text-neutralPrimary">
+                          Agent
+                        </p>
 
-                  <button
-                    type="button"
-                    disabled={
-                      validDownlinePage >=
-                      totalDownlinePages
-                    }
-                    onClick={() =>
-                      setDownlinePage((previous) =>
+                        <h3
+                          className="
+                            font-bold
+                            text-mainPrimary
+                            wrap-break-words
+                          "
+                        >
+                          {downline.fullName}
+                        </h3>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-custom-16">
+                      <div className="w-full bg-neutralLight py-custom-8 px-custom-16 rounded-lg">
+                          <p className="text-xs text-neutralPrimary">
+                            Agent Level
+                          </p>
+
+                          <p className="font-semibold text-mainPrimary">
+                            {downline.level}
+                          </p>
+                      </div>
+
+                      <span
+                        className={`
+                          shrink-0
+                          px-custom-16
+                          py-custom-8
+                          rounded-xl
+                          text-xs
+                          font-semibold
+                          text-white
+                          ${
+                            downline.status === "ACTIVE"
+                              ? "bg-positive"
+                              : downline.status === "EXPIRED"
+                              ? "bg-negative"
+                              : downline.status === "DROPPED"
+                              ? "bg-darkPrimary"
+                              : downline.status === "SUSPENDED"
+                              ? "bg-secondary"
+                              : "bg-mainPrimary"
+                          }
+                        `}
+                      >
+                        {downline.status}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-custom-8">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDownlineId(
+                            downline.id
+                          );
+
+                          setTransactionYear(
+                            new Date().getFullYear()
+                          );
+
+                          setOpenDownlineTransactions(
+                            true
+                          );
+                        }}
+                        className="
+                          w-full
+                          rounded-lg
+                          bg-lightPrimary
+                          px-custom-16
+                          py-custom-8
+                          text-xs
+                          font-semibold
+                          text-white
+                          cursor-pointer
+                          hover:bg-mainPrimary
+                        "
+                      >
+                        View SSP Sales
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={
+                          isCreatingPromotionRecommendation
+                        }
+                        onClick={() =>
+                          handleRecommendForPromotion(
+                            downline.id,
+                            downline.fullName
+                          )
+                        }
+                        className="
+                          w-full
+                          rounded-lg
+                          bg-secondary
+                          px-custom-16
+                          py-custom-8
+                          text-xs
+                          font-semibold
+                          text-white
+                          cursor-pointer
+                          hover:opacity-90
+                          disabled:cursor-not-allowed
+                          disabled:opacity-50
+                        "
+                      >
+                        Recommend Promotion
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div
+              className="
+                flex
+                flex-col
+                gap-custom-16
+                md:flex-row
+                md:items-center
+                md:justify-between
+                px-custom-16
+                md:px-custom-24
+                py-custom-16
+                md:py-custom-24
+                border-t
+                border-neutralMed
+              "
+            >
+              <div className="text-xs md:text-sm text-neutralPrimary text-center md:text-left">
+                Showing{" "}
+                <span className="font-semibold">
+                  {paginatedDownlines.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold">
+                  {filteredDownlines.length}
+                </span>{" "}
+                downlines
+              </div>
+
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-center
+                  gap-custom-8
+                  text-neutralPrimary
+                "
+              >
+                <button
+                  type="button"
+                  disabled={
+                    validDownlinePage === 1
+                  }
+                  onClick={() =>
+                    setDownlinePage(
+                      (previous) =>
+                        Math.max(
+                          previous - 1,
+                          1
+                        )
+                    )
+                  }
+                  className="
+                    flex-1
+                    md:flex-none
+                    px-custom-16
+                    py-custom-8
+                    rounded-md
+                    border
+                    border-neutralMed
+                    disabled:opacity-50
+                    disabled:cursor-not-allowed
+                  "
+                >
+                  Previous
+                </button>
+
+                <span
+                  className="
+                    min-w-14
+                    text-center
+                    font-semibold
+                    text-sm
+                  "
+                >
+                  {validDownlinePage} /{" "}
+                  {totalDownlinePages}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={
+                    validDownlinePage >=
+                    totalDownlinePages
+                  }
+                  onClick={() =>
+                    setDownlinePage(
+                      (previous) =>
                         Math.min(
                           previous + 1,
                           totalDownlinePages
                         )
-                      )
-                    }
-                    className="
-                      px-custom-16
-                      py-custom-8
-                      rounded-md
-                      border
-                      border-neutralMed
-                      disabled:opacity-50
-                      disabled:cursor-not-allowed
-                    "
-                  >
-                    Next
-                  </button>
-                </div>
+                    )
+                  }
+                  className="
+                    flex-1
+                    md:flex-none
+                    px-custom-16
+                    py-custom-8
+                    rounded-md
+                    border
+                    border-neutralMed
+                    disabled:opacity-50
+                    disabled:cursor-not-allowed
+                  "
+                >
+                  Next
+                </button>
               </div>
+            </div>
 
             </div>
           )}
