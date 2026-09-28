@@ -166,20 +166,20 @@ function MasterlistContent() {
 
   const handleRemoveAgent = async (
     agentId: string,
-    status: "DROPPED" | "SUSPENDED"
+    status: "DROPPED" | "SUSPENDED" | "REMOVE"
   ) => {
     const action =
       status === "DROPPED"
-        ? "Drop"
-        : "Suspend";
+        ? "Drop" : status === "SUSPENDED" ? "Suspend" 
+        : "Remove";
 
     SweetAlert.confirmationAlert(
-      `${action} Agent`,
+      `${status === "REMOVE" ? "Removing" : action} Agent`,
       `Are you sure you want to ${action.toLowerCase()} this agent?`,
       async () => {
         try {
           SweetAlert.loadingAlert(
-            `${action}ing Agent`,
+            `${status === "REMOVE" ? "Removing" : action} Agent`,
             "Please wait..."
           );
 
@@ -577,12 +577,72 @@ function MasterlistContent() {
                                   z-50
                                 "
                               >
-                                <button
+
+                                {agent.status !== "DROPPED" &&(
+                                  <div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleRemoveAgent(
+                                          agent.id,
+                                          "DROPPED"
+                                        );
+                                        setOpenDropdown(
+                                          null
+                                        );
+                                      }}
+                                      className="
+                                        w-full
+                                        cursor-pointer
+                                        text-left
+                                        font-bold
+                                        px-4
+                                        py-2
+                                        hover:bg-red-50
+                                        text-negative
+                                      "
+                                      >
+                                      Drop
+                                      Agent
+                                    </button>
+                                    
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleRemoveAgent(
+                                          agent.id,
+                                          "SUSPENDED"
+                                        );
+                                        setOpenDropdown(
+                                          null
+                                        );
+                                      }}
+                                      className="
+                                        w-full
+                                        cursor-pointer
+                                        text-left
+                                        font-bold
+                                        px-4
+                                        py-2
+                                        hover:bg-yellow-50
+                                        text-secondary
+                                      "
+                                    >
+                                    Suspend
+                                    Agent
+                                    </button>
+
+                                  </div>
+                                )}
+                                
+
+                                {agent.status === "DROPPED" &&(
+                                  <button
                                   type="button"
                                   onClick={() => {
                                     handleRemoveAgent(
                                       agent.id,
-                                      "DROPPED"
+                                      "REMOVE"
                                     );
 
                                     setOpenDropdown(
@@ -600,36 +660,10 @@ function MasterlistContent() {
                                     text-negative
                                   "
                                 >
-                                  Drop
-                                  Agent
+                                  Remove Forever
                                 </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleRemoveAgent(
-                                      agent.id,
-                                      "SUSPENDED"
-                                    );
-
-                                    setOpenDropdown(
-                                      null
-                                    );
-                                  }}
-                                  className="
-                                    w-full
-                                    cursor-pointer
-                                    text-left
-                                    font-bold
-                                    px-4
-                                    py-2
-                                    hover:bg-yellow-50
-                                    text-secondary
-                                  "
-                                >
-                                  Suspend
-                                  Agent
-                                </button>
+                                )}
+                                
                               </div>
                             )}
                           </div>

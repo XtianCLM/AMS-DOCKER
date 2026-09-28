@@ -581,7 +581,8 @@ export const droppedOrSuspendedAgentController = async (
 
     if (
       status !== "DROPPED" &&
-      status !== "SUSPENDED"
+      status !== "SUSPENDED" && 
+      status !== "REMOVE"
     ) {
       return res.status(400).json({
         message:

@@ -175,7 +175,7 @@ export const updatePendingAgentStatusService =
 export const DroppedorSuspendedAgentStatusService = 
   async(
     agentId:string,
-    status:  "DROPPED" | "SUSPENDED"
+    status:  "DROPPED" | "SUSPENDED" | "REMOVE"
 ) =>{
    const res = await api.patch(
     "/agents/droppedorSuspendedAgent",

@@ -217,7 +217,7 @@ export const useDroppedorSuspendedAgentStatus = () => {
       status,
     }: {
       agentId: string;
-      status:  "DROPPED" | "SUSPENDED"
+      status:  "DROPPED" | "SUSPENDED" | "REMOVE"
     }) =>
       DroppedorSuspendedAgentStatusService(
         agentId,

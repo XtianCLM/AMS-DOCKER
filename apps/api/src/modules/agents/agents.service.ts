@@ -1006,50 +1006,68 @@ export const updateAgentRegistration = async (
   return result.agent;
 };
 
-
 export const droppedOrSuspendedAgentService = async (
   agentId: string,
-  status: "DROPPED" | "SUSPENDED"
+  status: "DROPPED" | "SUSPENDED" | "REMOVE"
 ) => {
   return prisma.$transaction(async (tx) => {
-
-    const agent =
-      await tx.agent.update({
-        where: {
-          id: agentId,
-        },
-        data: {
-          status,
-        },
-      });
-
-    await tx.user.update({
+    const agent = await tx.agent.update({
       where: {
-        agentId: agent.id,
+        id: agentId,
       },
       data: {
-        isActive: false,
+        status,
       },
     });
 
-    const isDropped =
-      status === "DROPPED";
+    // Deactivate associated user account
+    const existingUser = await tx.user.findUnique({
+      where: {
+        agentId: agent.id,
+      },
+    });
+
+    if (existingUser) {
+      await tx.user.update({
+        where: {
+          id: existingUser.id,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    }
+    
+    let type: NotificationType;
+    let title: string;
+    let message: string;
+
+    switch (status) {
+      case "DROPPED":
+        type = NotificationType.MAINTENANCE_DROPPED;
+        title = "ACCOUNT DROPPED";
+        message = `Your account has been dropped. Username: ${agent.username}`;
+        break;
+
+      case "SUSPENDED":
+        type = NotificationType.MAINTENANCE_SUSPENDED;
+        title = "ACCOUNT SUSPENDED";
+        message = `Your account has been suspended. Username: ${agent.username}`;
+        break;
+
+      case "REMOVE":
+        type = NotificationType.MAINTENANCE_DROPPED; // change if you have a REMOVE notification type
+        title = "ACCOUNT REMOVED";
+        message = `Your account has been removed. Username: ${agent.username}`;
+        break;
+    }
 
     await tx.agentNotification.create({
       data: {
         agentId: agent.id,
-
-        type: isDropped
-          ? NotificationType.MAINTENANCE_DROPPED
-          : NotificationType.MAINTENANCE_SUSPENDED,
-
-        title: isDropped
-          ? "ACCOUNT DROPPED"
-          : "ACCOUNT SUSPENDED",
-
-        message: isDropped
-          ? `Your account has been dropped. Username: ${agent.username}`
-          : `Your account has been suspended. Username: ${agent.username}`,
+        type,
+        title,
+        message,
       },
     });
 

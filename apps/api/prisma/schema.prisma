@@ -109,6 +109,7 @@ enum AgentStatus {
   EXPIRED
   DROPPED
   SUSPENDED
+  REMOVE
 }
 
 // enum AccType {
@@ -848,12 +849,11 @@ model CommissionRule {
   @@map("commission_rules")
 }
 
-
 model DailyClientDetails {
   id             String   @id @default(uuid())
   secId          Int      @default(autoincrement())
 
-  sourceClientId Int?
+  sourceClientId Int?     @unique
   in_date        DateTime?
   createdAt      DateTime @default(now())
 
@@ -862,16 +862,13 @@ model DailyClientDetails {
   term           Int      @default(0)
   clientStatus   ClientStatus
 
-  uploadedById Int?
-  uploadedBy User? @relation(fields: [uploadedById], references: [id])
+  uploadedById   Int?
+  uploadedBy     User?    @relation(fields: [uploadedById], references: [id])
 
   commissionScans CommissionScan[]
 
-  @@unique([sourceClientId,uploadedById])
-
   @@index([uploadedById])
 }
-
 
 
 model CommissionScan {
