@@ -662,7 +662,8 @@ export type AgentStatus =
   | "DROPPED"
   | "SUSPENDED"
   | "PENDING"
-  | "REJECTED";
+  | "REJECTED"
+  | "REMOVE";
 
 export type AgentEditDetails = {
   id: string;

@@ -1,22 +1,5 @@
 import prisma from "../../lib/prisma";
 
-import {
-  RegisterAgentSchema,
-  GetPendingAgentParams,
-  GetMasterlistParams,
-  GetTransactionParams,
-  CheckUniqueInfoParams,
-  CheckUniqueInfoResponse,
-  TransactionHistParams,
-  UpdateAgentAccSchema,
-  GetRemainingSalesResponse,
-  UpdateAdminAccSchema,
-  AgentEditDetails,
-  UpdateAgentDetailsPayload,
-  RegisterAgentApiPayload,
-  ListParams,
-  PromotionPayload,
-} from "@repo/shared";
 
 import {
   generateTemporaryPassword
@@ -34,6 +17,8 @@ import {
 import { formatDateForResponse, normalizeNullableString, parseAgentGender, parseNullableDate, validateAgentLevelChange } from "./helper/agent.helper";
 import { sendSmsToGateway } from "../../services/sms/sms.services";
 import { AppError } from "../../middleware/appError.middleware";
+import { AgentEditDetails, CheckUniqueInfoParams, CheckUniqueInfoResponse, GetMasterlistParams, GetPendingAgentParams, GetRemainingSalesResponse, GetTransactionParams, ListParams, PromotionPayload, RegisterAgentApiPayload, TransactionHistParams, UpdateAdminAccSchema, UpdateAgentAccSchema, UpdateAgentDetailsPayload } from "@repo/shared";
+
 
 
 
