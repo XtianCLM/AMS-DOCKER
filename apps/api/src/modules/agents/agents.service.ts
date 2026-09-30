@@ -775,23 +775,42 @@ export const updateAgentRegistration = async (
         status === "ACTIVE" &&
         ["L1", "L2"].includes(agent.level)
       ) {
-        const existingUser =
-          await tx.user.findUnique({
-            where: {
-              agentId: agent.id,
-            },
-          });
 
-        if (existingUser) {
-          /*
-           * These operations do not depend on each
-           * other's results, so they can run together.
-           */
+      const [
+        existingUserByAgent,
+        existingUserByEmail,
+        existingUserByUsername,
+      ] = await Promise.all([
+        tx.user.findUnique({
+          where: {
+            agentId: agent.id,
+          },
+        }),
+
+        agent.email
+          ? tx.user.findUnique({
+              where: {
+                email: agent.email,
+              },
+            })
+          : Promise.resolve(null),
+
+        agent.username
+          ? tx.user.findUnique({
+              where: {
+                username: agent.username,
+              },
+            })
+          : Promise.resolve(null),
+      ]);
+
+        if (existingUserByAgent) {
           await Promise.all([
             tx.user.update({
               where: {
-                agentId: agent.id,
+                id: existingUserByAgent.id,
               },
+
               data: {
                 isActive: true,
               },
@@ -812,6 +831,24 @@ export const updateAgentRegistration = async (
             }),
           ]);
         } else {
+          /*
+          * Another user already owns this email.
+          */
+          if (existingUserByEmail) {
+            throw new Error(
+              `EMAIL_ALREADY_IN_USE:${agent.email}`
+            );
+          }
+
+          /*
+          * Another user already owns this username.
+          */
+          if (existingUserByUsername) {
+            throw new Error(
+              `USERNAME_ALREADY_IN_USE:${agent.username}`
+            );
+          }
+
           const agentRole =
             await tx.role.findUnique({
               where: {
@@ -825,10 +862,6 @@ export const updateAgentRegistration = async (
             );
           }
 
-          /*
-           * User creation and notification creation
-           * are independent after the role is found.
-           */
           await Promise.all([
             tx.user.create({
               data: {
@@ -871,7 +904,7 @@ export const updateAgentRegistration = async (
 
           shouldSendApprovalEmail =
             Boolean(agent.email);
-        }
+        } 
       } else {
         await tx.agentNotification.create({
           data: {

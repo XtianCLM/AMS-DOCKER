@@ -549,17 +549,51 @@ export const updateAgentRegistrationController = async(
       data:result,
     })
 
-  }catch(error){
-      console.error(
-        "UPDATE AGENT STATUS ERROR:",
-        error
-      );
+  }catch (error) {
+    console.error(
+      "UPDATE AGENT STATUS ERROR:",
+      error
+    );
 
-      return res.status(500).json({
+    if (
+      error instanceof Error &&
+      error.message.startsWith(
+        "EMAIL_ALREADY_IN_USE:"
+      )
+    ) {
+      const email =
+        error.message.substring(
+          "EMAIL_ALREADY_IN_USE:".length
+        );
+
+      return res.status(409).json({
         message:
-          "Failed to update agent status",
+          `Email ${email} is already assigned to another account.`,
       });
-  };
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.startsWith(
+        "USERNAME_ALREADY_IN_USE:"
+      )
+    ) {
+      const username =
+        error.message.substring(
+          "USERNAME_ALREADY_IN_USE:".length
+        );
+
+      return res.status(409).json({
+        message:
+          `Username ${username} is already assigned to another account.`,
+      });
+    }
+
+    return res.status(500).json({
+      message:
+        "Failed to update agent registration.",
+    });
+  }
 };
 
 export const droppedOrSuspendedAgentController = async (
