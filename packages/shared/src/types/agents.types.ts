@@ -430,6 +430,9 @@ export interface AgentDetailsDownline {
 
   status: string;
 
+  directSalesCount: number;
+  directSalesAmount: number;
+
 }
 
 
@@ -458,6 +461,8 @@ export interface GetAgentDetailsResponse {
   agentCode: string;
 
   profilePicture: string;
+
+  governmentId: string | null;
 
   username: string;
 

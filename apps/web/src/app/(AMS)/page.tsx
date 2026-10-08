@@ -3,8 +3,6 @@
 import dynamic from "next/dynamic";
 
 import {
-  useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -37,12 +35,12 @@ import MainModal from "@/components/modal/mainModal";
 import ModuleHeader from "@/components/ui/commonUi/page.header";
 import AppsTab from "@/components/ui/commonUi/general.tab";
 import { useCreateCommissionScan, useScannedAgent } from "@/hooks/commission/useCommission";
-import QRCode from "react-qr-code";
 import { useAuth } from "@/components/context/UserContext";
 import SweetAlert from "@/components/modal/Swal";
 import { useSearchEligibleAgents } from "@/hooks/general/useGeneral";
 import axios from "axios";
 import { getAssetUrl } from "@/lib/getAssetUrl";
+import Image from "next/image";
 
 /* =========================================
    QR SCANNER
@@ -124,8 +122,13 @@ export default function ClientsPage() {
 
   
   
-  const [selectedPhoneNumber, setSelectedPhoneNumber] =
-  useState("");
+  const [
+    selectedPhoneNumberOverride,
+    setSelectedPhoneNumberOverride,
+  ] =
+    useState<string | null>(
+      null
+    );
   const [checkNumber, setCheckNumber] =
   useState("");
 
@@ -152,8 +155,7 @@ export default function ClientsPage() {
     data: eligibleAgents = [],
     isLoading:
       isSearchingAgents,
-    isFetching:
-      isFetchingAgents,
+ 
   } =
     useSearchEligibleAgents(
       agentSearch
@@ -249,13 +251,26 @@ export default function ClientsPage() {
 
   const handleCloseModal = () => {
     setOpenModal(false);
-    setQrResult("");
-    setScanMode("scan-qr");
 
-    setPayoutChannel("GCASH");
+    setQrResult("");
+
+    setScanMode(
+      "scan-qr"
+    );
+
+    setPayoutChannel(
+      "GCASH"
+    );
+
     setCheckNumber("");
 
-    setViewCommission(false);
+    setSelectedPhoneNumberOverride(
+      null
+    );
+
+    setViewCommission(
+      false
+    );
   };
 
   const handleSelectedClient = (id:string) => {
@@ -286,7 +301,7 @@ export default function ClientsPage() {
     ) ?? [];
 
 
-    const {
+  const {
       data: scannedAgent,
       isLoading: isScanningAgent,
       error: scannedAgentError,
@@ -294,16 +309,19 @@ export default function ClientsPage() {
       agentCode: qrResult,
       clientId:selectedScanClientId,
     });
+  
+  const defaultPhoneNumber =
+    scannedAgent?.agent.telephone ??
+    scannedAgent?.agent.SecondaryTel ??
+    "";
 
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL ??
-    "http://localhost:5000";
+  const selectedPhoneNumber =
+    selectedPhoneNumberOverride ??
+    defaultPhoneNumber;
 
   const profilePictureUrl =
-    // scannedAgent?.agent.profilePicture
-    //   ? `${API_BASE_URL}${scannedAgent?.agent.profilePicture.trim()}`
-    //   : null;
+
     getAssetUrl(
         scannedAgent?.agent.profilePicture
       );
@@ -510,18 +528,7 @@ export default function ClientsPage() {
      RENDER
   ========================================= */
 
-    useEffect(() => {
-  if (!scannedAgent) {
-    setSelectedPhoneNumber("");
-    return;
-  }
 
-  setSelectedPhoneNumber(
-    scannedAgent.agent.telephone ??
-    scannedAgent.agent.SecondaryTel ??
-    ""
-  );
-}, [scannedAgent]);
 
   return (
     <div className="w-full flex flex-col gap-y-custom-32 px-custom-32 py-custom-48 ">
@@ -1009,6 +1016,10 @@ export default function ClientsPage() {
                               cleaned
                             );
 
+                            setSelectedPhoneNumberOverride(
+                              null
+                            );
+
                             setSelectedAgent(
                               null
                             );
@@ -1129,6 +1140,10 @@ export default function ClientsPage() {
 
                                         setQrResult(
                                           agent.agentCode
+                                        );
+
+                                        setSelectedPhoneNumberOverride(
+                                          null
                                         );
 
                                         setAgentSearch("");
@@ -1284,19 +1299,22 @@ export default function ClientsPage() {
 
 
                             {profilePictureUrl ? (
-                              <img
-                                src={profilePictureUrl}
-                                alt={`${scannedAgent?.agent.fullName ?? "Agent"} profile`}
-                                className="
-                                  w-28
-                                  h-28
-                                  rounded-md
-                                  object-cover
-                                  border
-                                  border-neutralMed
-                                "
-                              />
-                            ) : (
+                                <Image
+                                  src={profilePictureUrl}
+                                  alt={`${scannedAgent?.agent.fullName ?? "Agent"} profile`}
+                                  width={112}
+                                  height={112}
+                                  unoptimized
+                                  className="
+                                    w-28
+                                    h-28
+                                    rounded-md
+                                    object-cover
+                                    border
+                                    border-neutralMed
+                                  "
+                                />
+                              ) : (
                               <div
                                 className="
                                   w-28
@@ -1479,9 +1497,11 @@ export default function ClientsPage() {
 
                                 <select
                                   id="gcashNumber"
-                                  value={selectedPhoneNumber}
+                                  value={
+                                    selectedPhoneNumber
+                                  }
                                   onChange={(event) =>
-                                    setSelectedPhoneNumber(
+                                    setSelectedPhoneNumberOverride(
                                       event.target.value
                                     )
                                   }
@@ -1936,9 +1956,12 @@ export default function ClientsPage() {
 
 
                             {detailsProfilePictureUrl ? (
-                              <img
+                              <Image
                                 src={detailsProfilePictureUrl}
                                 alt={`${directTransaction?.sourceAgent.fullName ?? "Agent"} profile`}
+                                width={112}
+                                height={112}
+                                unoptimized
                                 className="
                                   w-28
                                   h-28

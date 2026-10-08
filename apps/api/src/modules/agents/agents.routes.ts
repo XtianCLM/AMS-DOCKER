@@ -28,9 +28,22 @@ router.get(
 
 
 
-router.post("/registerAgent",uploadAgentProfile.single(
-    "profilePhoto"
-  ), registerAgentController);
+router.post(
+  "/registerAgent",
+
+  uploadAgentProfile.fields([
+    {
+      name: "profilePhoto",
+      maxCount: 1,
+    },
+    {
+      name: "governmentId",
+      maxCount: 1,
+    },
+  ]),
+
+  registerAgentController
+);
 router.post("/getPendingAgent", getAllPendingAgentController);
 router.post("/getMasterlist",authenticateToken, getMasterlistController);
 router.post("/checkUniqueInfo",checkUniqueInfoController);

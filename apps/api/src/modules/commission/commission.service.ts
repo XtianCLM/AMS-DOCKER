@@ -1,4 +1,4 @@
-import { CreateCommissionPayload, ProcessDirectCommissionPayoutPayload, UpdateCommissionRules, UpdateOverrideRules } from "@repo/shared";
+import { CreateCommissionPayload, ProcessDirectCommissionPayoutPayload, UpdateCommissionRules, UpdateOverrideRules } from "@repo/shared"
 import prisma from "../../lib/prisma";
 import { calculateDirectCommission } from "./utils/commission.direct";
 import { getAgentUplines } from "./utils/commission.fetchUpline";

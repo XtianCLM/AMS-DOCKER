@@ -4,19 +4,14 @@ import {
   RegisterAgentSchema,
 } from "@repo/shared";
 import axios from "axios";
-
-
+import Image from "next/image";
 import QRCode from "react-qr-code";
-
 import Swal from "sweetalert2";
 import SweetAlert from "@/components/modal/Swal";
-
 import {
   UseFormHandleSubmit,
 } from "react-hook-form";
-
 import { useRegisterAgent } from "@/hooks/agents/useAgent";
-import { getErrorMessage } from "@/components/helper/errorHelper";
 import { useAuth } from "@/components/context/UserContext";
 import { useEffect, useRef, useState } from "react";
 
@@ -43,7 +38,19 @@ export default function FinalAssessmentStep({
 
 
 
+  const [
+    governmentId,
+    setGovernmentId,
+  ] = useState<File | null>(
+    null
+  );
 
+  const [
+    governmentIdPreview,
+    setGovernmentIdPreview,
+  ] = useState<string | null>(
+    null
+  );
 
   const videoRef =
     useRef<HTMLVideoElement | null>(null);
@@ -315,6 +322,15 @@ export default function FinalAssessmentStep({
         return;
       }
 
+      if (!governmentId) {
+        SweetAlert.errorAlert(
+          "Government ID Required",
+          "Please upload a valid government ID."
+        );
+
+        return;
+      }
+
       try {
         SweetAlert.loadingAlert(
           "Registering Agent",
@@ -400,6 +416,13 @@ export default function FinalAssessmentStep({
           profilePhoto
         );
 
+
+
+        formData.append(
+          "governmentId",
+          governmentId
+        );
+
         await registerMutation.mutateAsync(
           formData
         );
@@ -435,6 +458,23 @@ export default function FinalAssessmentStep({
         setProfilePreview(null);
         setCameraActive(false);
 
+
+
+      if (
+        governmentIdPreview
+      ) {
+        URL.revokeObjectURL(
+          governmentIdPreview
+        );
+      }
+
+      setGovernmentId(
+        null
+      );
+
+      setGovernmentIdPreview(
+        null
+      );
         /*
         * Clear all form fields and return
         * to Personal Details.
@@ -460,27 +500,139 @@ export default function FinalAssessmentStep({
     };
 
 
-  useEffect(() => {
-    return () => {
-      streamRef.current
-        ?.getTracks()
-        .forEach((track) => {
-          track.stop();
-        });
+    useEffect(() => {
+      return () => {
+        streamRef.current
+          ?.getTracks()
+          .forEach(
+            (
+              track
+            ) => {
+              track.stop();
+            }
+          );
 
-      if (profilePreview) {
-        URL.revokeObjectURL(
+        if (
           profilePreview
+        ) {
+          URL.revokeObjectURL(
+            profilePreview
+          );
+        }
+
+        if (
+          governmentIdPreview
+        ) {
+          URL.revokeObjectURL(
+            governmentIdPreview
+          );
+        }
+      };
+    }, [
+      profilePreview,
+      governmentIdPreview,
+    ]);
+
+
+  const handleGovernmentIdUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
+      SweetAlert.errorAlert(
+        "Invalid File",
+        "Government ID must be a JPG, PNG, or WEBP image."
+      );
+
+      event.target.value = "";
+
+      return;
+    }
+
+    if (
+      file.size >
+      5 * 1024 * 1024
+    ) {
+      SweetAlert.errorAlert(
+        "File Too Large",
+        "Government ID image must not exceed 5 MB."
+      );
+
+      event.target.value = "";
+
+      return;
+    }
+
+    if (
+      governmentIdPreview
+    ) {
+      URL.revokeObjectURL(
+        governmentIdPreview
+      );
+    }
+
+    const preview =
+      URL.createObjectURL(
+        file
+      );
+
+    setGovernmentId(
+      file
+    );
+
+    setGovernmentIdPreview(
+      preview
+    );
+
+    event.target.value = "";
+  };
+
+
+  const removeGovernmentId =
+    () => {
+      if (
+        governmentIdPreview
+      ) {
+        URL.revokeObjectURL(
+          governmentIdPreview
         );
       }
+
+      setGovernmentId(
+        null
+      );
+
+      setGovernmentIdPreview(
+        null
+      );
     };
-  }, [profilePreview]);
+  const handleFormSubmit = (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    void handleSubmit(
+      onSubmit
+    )(event);
+  };
 
   return (
     <form
-         onSubmit={handleSubmit(
-        onSubmit
-      )}
+        onSubmit={handleFormSubmit}
         className="flex flex-col gap-custom-32"
       >
 
@@ -532,6 +684,7 @@ export default function FinalAssessmentStep({
 
               <div
                 className="
+                  relative
                   w-56
                   h-56
                   rounded-full
@@ -544,13 +697,15 @@ export default function FinalAssessmentStep({
                   justify-center
                 "
               >
-                {profilePreview ? (
-                  <img
-                    src={profilePreview}
-                    alt="Agent profile preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : cameraActive ? (
+              {profilePreview ? (
+                <Image
+                  src={profilePreview}
+                  alt="Agent profile preview"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              ) : cameraActive ? (
                  <video
                     ref={videoRef}
                     autoPlay
@@ -660,6 +815,267 @@ export default function FinalAssessmentStep({
                   </button>
                 )}
               </div>
+            </div>
+
+
+                {/* GOVERNMENT ID */}
+
+            <div
+              className="
+                bg-white
+                border
+                border-neutralMed
+                rounded-2xl
+                p-custom-24
+
+                flex
+                flex-col
+                gap-custom-24
+              "
+            >
+              {/* HEADER */}
+
+              <div>
+                <h2
+                  className="
+                    text-secondaryHeader
+                    font-semibold
+                    text-mainPrimary
+                  "
+                >
+                  Government ID
+                </h2>
+
+                <p
+                  className="
+                    mt-1
+                    text-sm
+                    text-neutralPrimary
+                  "
+                >
+                  Upload one valid
+                  government-issued ID.
+                </p>
+              </div>
+
+
+              {/* PREVIEW */}
+
+              {governmentIdPreview ? (
+                <div
+                  className="
+                    overflow-hidden
+
+                    border
+                    border-neutralMed
+
+                    rounded-xl
+
+                    bg-neutralLight
+                  "
+                >
+                <div
+                  className="
+                    relative
+                    aspect-[1.6/1]
+                    w-full
+                    overflow-hidden
+                    bg-neutralLight
+                  "
+                >
+                  <Image
+                    src={governmentIdPreview}
+                    alt="Government ID preview"
+                    fill
+                    unoptimized
+                    className="object-contain"
+                  />
+                </div>
+
+
+                  <div
+                    className="
+                      flex
+                      items-center
+                      justify-between
+                      gap-custom-16
+
+                      border-t
+                      border-neutralMed
+
+                      bg-white
+                      p-custom-16
+                    "
+                  >
+                    <div
+                      className="
+                        min-w-0
+                      "
+                    >
+                      <p
+                        className="
+                          text-sm
+                          font-semibold
+                          text-mainPrimary
+                        "
+                      >
+                        Government ID
+                      </p>
+
+                      <p
+                        className="
+                          truncate
+                          text-xs
+                          text-neutralPrimary
+                        "
+                      >
+                        {
+                          governmentId
+                            ?.name
+                        }
+                      </p>
+                    </div>
+
+
+                    <button
+                      type="button"
+                      onClick={
+                        removeGovernmentId
+                      }
+                      className="
+                        shrink-0
+
+                        rounded-lg
+
+                        border
+                        border-negative
+
+                        px-custom-16
+                        py-custom-8
+
+                        text-xs
+                        font-semibold
+                        text-negative
+
+                        cursor-pointer
+
+                        hover:bg-red-50
+                      "
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="
+                    flex
+                    min-h-48
+                    items-center
+                    justify-center
+
+                    rounded-xl
+
+                    border-2
+                    border-dashed
+                    border-neutralMed
+
+                    bg-neutralLight
+
+                    p-custom-24
+                  "
+                >
+                  <div
+                    className="
+                      text-center
+                    "
+                  >
+                    <p
+                      className="
+                        font-semibold
+                        text-mainPrimary
+                      "
+                    >
+                      No Government ID Uploaded
+                    </p>
+
+                    <p
+                      className="
+                        mt-1
+                        text-sm
+                        text-neutralPrimary
+                      "
+                    >
+                      One government ID is required
+                      before registration.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+
+              {/* UPLOAD BUTTON */}
+
+              {!governmentId && (
+                <div>
+                  <label
+                    htmlFor="governmentId"
+                    className="
+                      inline-flex
+                      items-center
+                      justify-center
+
+                      rounded-xl
+
+                      bg-mainPrimary
+
+                      px-custom-24
+                      py-custom-16
+
+                      text-sm
+                      font-semibold
+                      text-white
+
+                      cursor-pointer
+
+                      hover:bg-lightPrimary
+                      hover:shadow-lg
+
+                      transition-all
+                    "
+                  >
+                    Upload Government ID
+                  </label>
+
+                  <input
+                    id="governmentId"
+                    type="file"
+
+                    accept="
+                      image/jpeg,
+                      image/png,
+                      image/webp
+                    "
+
+                    onChange={
+                      handleGovernmentIdUpload
+                    }
+
+                    className="hidden"
+                  />
+
+                  <p
+                    className="
+                      mt-2
+                      text-xs
+                      text-neutralPrimary
+                    "
+                  >
+                    JPG, PNG or WEBP.
+                    Maximum 5 MB.
+                  </p>
+                </div>
+              )}
             </div>
 
           {/* TOP SECTION */}

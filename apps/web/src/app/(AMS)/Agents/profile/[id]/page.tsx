@@ -4,19 +4,18 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Bell, X, ArrowLeft, Activity,
   ShoppingCart,
   Wallet,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   Edit, } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAgentDetails, useAgentTransactions } from "@/hooks/agents/useAgent";
-import QRCode from "react-qr-code";
 import AppsTab from "@/components/ui/commonUi/general.tab";
 import { AgentNotification, AgentTransaction } from "@repo/shared";
 import { socket } from "@/lib/socket";
 import { useEffect } from "react";
 import EditAgentModal from "../../components/EditAgentModal";
 import { getAssetUrl } from "@/lib/getAssetUrl";
+import Image from "next/image";
 
 
 type TABKEY =
@@ -54,6 +53,8 @@ export default function AgentDetailsPage() {
       useState<TABKEY>(
         initialTab
       );
+
+    
 
 
 
@@ -231,6 +232,19 @@ export default function AgentDetailsPage() {
            agent?.profilePicture
        );
 
+  const governmentIdUrl =
+       getAssetUrl(
+        agent?.governmentId
+       );
+
+
+  const [governmentIdLoadError, setGovernmentIdLoadError] =
+    useState(false);
+
+  const hasGovernmentId =
+    Boolean(governmentIdUrl) &&
+    !governmentIdLoadError;
+
   const {
       data: transactionData,
       isLoading:
@@ -242,7 +256,7 @@ export default function AgentDetailsPage() {
 
       page,
 
-      limit: 10,
+      limit: 3,
     });
 
   
@@ -481,9 +495,12 @@ export default function AgentDetailsPage() {
                 "
               >
                 {profilePictureUrl ? (
-                  <img
+                <Image
                     src={profilePictureUrl}
                     alt={`${agent.fullName ?? "Agent"} profile`}
+                    width={128}
+                    height={128}
+                    unoptimized
                     className="
                       h-32
                       w-32
@@ -598,6 +615,144 @@ export default function AgentDetailsPage() {
                     </div>
                 </div>
               </div>
+
+              {/* ========================================= */}
+              {/* GOVERNMENT ID */}
+              {/* ========================================= */}
+
+              <div
+                className="
+                  w-full
+                  rounded-xl
+                  border
+                  border-neutralMed
+                  bg-white
+                  p-custom-24
+                "
+              >
+                <div
+                  className="
+                    mb-custom-16
+                    flex
+                    items-center
+                    justify-between
+                    gap-custom-16
+                  "
+                >
+                  <div>
+                    <h2
+                      className="
+                        text-mdHeader
+                        font-bold
+                        text-mainPrimary
+                      "
+                    >
+                      Government ID
+                    </h2>
+
+                    <p
+                      className="
+                        mt-1
+                        text-sm
+                        text-neutralPrimary
+                      "
+                    >
+                      Government-issued identification
+                      submitted during registration.
+                    </p>
+                  </div>
+
+                  {hasGovernmentId && (
+                    <a
+                      href={
+                        governmentIdUrl!
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="
+                        rounded-lg
+                        bg-mainPrimary
+                        px-custom-16
+                        py-custom-8
+                        text-sm
+                        font-semibold
+                        text-white
+                        transition
+                        hover:bg-lightPrimary
+                      "
+                    >
+                      View Full Image
+                    </a>
+                  )}
+                </div>
+
+                {governmentIdUrl &&
+                !governmentIdLoadError ? (
+                  <div
+                    className="
+                      flex
+                      min-h-64
+                      w-full
+                      items-center
+                      justify-center
+                      overflow-hidden
+                      rounded-lg
+                      border
+                      border-neutralMed
+                      bg-neutralLight
+                      p-custom-16
+                    "
+                  >
+                    <Image
+                      src={governmentIdUrl}
+                      alt="Government ID"
+                      width={900}
+                      height={600}
+                      unoptimized
+                      onError={() => {
+                        setGovernmentIdLoadError(
+                          true
+                        );
+                      }}
+                      className="
+                        max-h-96
+                        h-auto
+                        w-auto
+                        max-w-full
+                        rounded-lg
+                        object-contain
+                      "
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="
+                      flex
+                      min-h-48
+                      w-full
+                      items-center
+                      justify-center
+                      rounded-lg
+                      border
+                      border-dashed
+                      border-neutralMed
+                      bg-neutralLight
+                    "
+                  >
+                    <p
+                      className="
+                        text-sm
+                        font-medium
+                        text-neutralPrimary
+                      "
+                    >
+                      No government ID found.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+
               <div className="flex flex-col gap-y-custom-32">
                   {/* MAIN TABS */}
                   <AppsTab
@@ -883,7 +1038,7 @@ export default function AgentDetailsPage() {
               >
                 Notifications
               </h2>
-              <div className="mt-6 flex flex-col gap-y-custom-16 overflow-y-auto max-h-146">
+              <div className="mt-6 flex flex-col gap-y-custom-16 overflow-y-auto max-h-260">
                   {notifications.length === 0 ? (
                     <div
                       className="
@@ -1100,6 +1255,14 @@ export default function AgentDetailsPage() {
                     </th>
 
                     <th className="text-left px-custom-24 py-4 font-semibold">
+                      Direct Sales
+                    </th>
+
+                    <th className="text-left px-custom-24 py-4 font-semibold">
+                      Sales Amount
+                    </th>
+
+                    <th className="text-left px-custom-24 py-4 font-semibold">
                       Status
                     </th>
                   </tr>
@@ -1109,7 +1272,7 @@ export default function AgentDetailsPage() {
                   {filteredDownlines.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={3}
+                        colSpan={5}
                         className="text-center py-10 text-neutralPrimary"
                       >
                         {agent.level === "L1"
@@ -1119,7 +1282,7 @@ export default function AgentDetailsPage() {
                     </tr>
                   ) : (
                     paginatedDownlines.map((downline) => (
-                      <tr
+                     <tr
                         key={downline.id}
                         className="
                           text-neutralPrimary
@@ -1136,6 +1299,39 @@ export default function AgentDetailsPage() {
                         </td>
 
                         <td className="text-left px-6 py-4">
+                          {(
+                            downline
+                              .directSalesCount ??
+                            0
+                          ).toLocaleString(
+                            "en-PH"
+                          )}
+                        </td>
+
+                        <td className="text-left px-6 py-4 font-semibold text-mainPrimary">
+                          {new Intl.NumberFormat(
+                            "en-PH",
+                            {
+                              style:
+                                "currency",
+
+                              currency:
+                                "PHP",
+
+                              minimumFractionDigits:
+                                0,
+
+                              maximumFractionDigits:
+                                0,
+                            }
+                          ).format(
+                            downline
+                              .directSalesAmount ??
+                            0
+                          )}
+                        </td>
+
+                        <td className="text-left px-6 py-4">
                           <span
                             className={`
                               px-custom-16
@@ -1144,15 +1340,24 @@ export default function AgentDetailsPage() {
                               text-xs
                               font-semibold
                               text-white
+
                               ${
-                                downline.status === "ACTIVE"
+                                downline.status ===
+                                "ACTIVE"
                                   ? "bg-positive"
-                                  : downline.status === "EXPIRED"
+
+                                  : downline.status ===
+                                    "EXPIRED"
                                   ? "bg-negative"
-                                  : downline.status === "DROPPED"
+
+                                  : downline.status ===
+                                    "DROPPED"
                                   ? "bg-darkPrimary"
-                                  : downline.status === "SUSPENDED"
+
+                                  : downline.status ===
+                                    "SUSPENDED"
                                   ? "bg-secondary"
+
                                   : "bg-mainPrimary"
                               }
                             `}

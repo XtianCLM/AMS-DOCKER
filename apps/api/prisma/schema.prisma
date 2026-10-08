@@ -44,6 +44,8 @@ model User{
 
   agentRecoPromotion AgentRecomForPromotion[]
 
+  createdAssemblies AssemblyAnnouncement[] @relation("AssemblyCreatedBy")
+
   processedCommissionScans CommissionScan[]@relation("ProcessedCommissionScan")
 
   commissionRulesCreated OverrideCommissionRule[]@relation("CommissionRuleCreator")
@@ -253,6 +255,74 @@ enum PayoutChannel {
   CHECK
 }
 
+
+enum AssemblyStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum AssemblySmsStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+}
+
+
+model AssemblyAnnouncement {
+  id             String @id @default(uuid())
+
+  meetingDate    DateTime
+  message        String @db.Text
+
+  status         AssemblyStatus @default(PENDING)
+
+  totalRecipients Int @default(0)
+  sentCount       Int @default(0)
+  failedCount     Int @default(0)
+
+  createdById     Int?
+  createdBy       User? @relation("AssemblyCreatedBy",fields: [createdById],references: [id],onDelete: SetNull)
+
+  recipients AssemblyRecipient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([meetingDate])
+  @@map("assembly_announcements")
+}
+
+model AssemblyRecipient {
+  id String @id @default(uuid())
+
+  assemblyId String
+  assembly AssemblyAnnouncement @relation(fields: [assemblyId],references: [id],onDelete: Cascade)
+
+  agentId String
+  agent Agent @relation(fields: [agentId],references: [id],onDelete: Restrict)
+
+  phoneNumber String @db.VarChar(20)
+
+  status AssemblySmsStatus @default(PENDING)
+
+  attempts Int @default(0)
+  lastError String? @db.Text
+
+  sentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([assemblyId, agentId])
+  @@index([status, createdAt])
+  @@map("assembly_recipients")
+}
+
 model Company {
   companyCode    String    @id @db.VarChar(20)
 
@@ -312,6 +382,7 @@ model Agent {
   id                 String   @id @default(uuid())
 
   profilePicture     String?
+  governmentId        String?
 
   agentCode          String   @unique @db.VarChar(100)
 
@@ -352,6 +423,8 @@ model Agent {
   branches           AgentBranch[]
 
   user User?
+
+  assemblyRecipients AssemblyRecipient[]
 
   reactivationPayments AgentReactivationPayment[]
 

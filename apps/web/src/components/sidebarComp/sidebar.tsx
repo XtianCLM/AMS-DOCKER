@@ -5,6 +5,8 @@ import {
   Cpu,
   ChevronLeft,
   ChevronRight,
+
+  MessageSquareText,
 } from "lucide-react";
 
 import {
@@ -437,7 +439,7 @@ export default function Sidebar({
         )}
       </button>
 
-      <div className="flex items-center justify-between border-b border-neutralPrimary pb-3.5 mb-6">
+      <div className="flex flex-col gap-y-custom-16 items-center justify-between border-b border-neutralPrimary pb-3.5 mb-6">
 
         {/* Hidden DBF input */}
         <input
@@ -518,6 +520,47 @@ export default function Sidebar({
             <Cpu />
           )}
         </button>
+
+        {/* <button
+          type="button"
+          className={`
+            inline-flex
+            items-center
+            ${isOpen
+              ? "justify-between"
+              : "justify-center"
+            }
+            w-full
+            border-darkPrimary
+            border-2
+            text-darkPrimary
+            hover:bg-secondary
+            hover:text-white
+            hover:border-secondary
+            cursor-pointer
+            py-2
+            rounded-lg
+            px-4
+            transition-all
+            duration-300
+            disabled:opacity-50
+            disabled:cursor-not-allowed
+          `}
+        >
+          
+        { isOpen ? (
+          <>
+              Declare Assembly
+
+              <MessageSquareText />
+            </>
+
+        ):
+            <MessageSquareText />
+        }
+            
+         
+        </button> */}
       </div>
 
       <div

@@ -124,15 +124,42 @@ select:-webkit-autofill {
   }
 }
 
-@media print {
-  .report-print-actions {
+@media screen {
+  .print-only {
     display: none !important;
   }
-   
+}
+
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+
+  /* ------------------------------------- */
+  /* GENERAL PRINT */
+  /* ------------------------------------- */
+
   html,
   body {
     background: white !important;
   }
+
+  .report-print-actions,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+
+  /* ------------------------------------- */
+  /* EXISTING REPORT TABLES */
+  /* ------------------------------------- */
 
   table {
     width: 100%;
@@ -151,5 +178,103 @@ select:-webkit-autofill {
 
   thead {
     display: table-header-group;
+  }
+
+
+  /* ------------------------------------- */
+  /* AGENT MANAGEMENT PRINT */
+  /* ------------------------------------- */
+
+  body * {
+    visibility: hidden;
+  }
+
+  #agent-management-print,
+  #agent-management-print * {
+    visibility: visible;
+  }
+
+  #agent-management-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+
+    width: 100%;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+
+    overflow: visible !important;
+
+    background: white !important;
+  }
+
+
+  #agent-management-print table {
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+    border-collapse: collapse !important;
+
+    table-layout: auto;
+  }
+
+
+  #agent-management-print thead {
+    display: table-header-group;
+  }
+
+
+  #agent-management-print tbody {
+    display: table-row-group;
+  }
+
+
+  #agent-management-print tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+
+  #agent-management-print th,
+  #agent-management-print td {
+    padding: 6px 7px !important;
+
+    border: 1px solid #d1d5db !important;
+
+    font-size: 9px !important;
+
+    color: black !important;
+
+    background: white !important;
+  }
+
+
+  #agent-management-print th {
+    font-weight: 700 !important;
+
+    background: #f3f4f6 !important;
+  }
+
+
+  #agent-management-print .status-print {
+    background: transparent !important;
+
+    color: black !important;
+
+    padding: 0 !important;
+
+    border-radius: 0 !important;
+  }
+
+
+  .screen-heading {
+    display: none !important;
   }
 }

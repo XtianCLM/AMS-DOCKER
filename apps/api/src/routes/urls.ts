@@ -14,6 +14,7 @@ import { errorMiddleware } from "../middleware/error.middleware";
 import withdrawalRoutes from "../modules/withdraw/withdraw.routes";
 import reportsRoutes from "../modules/reports/reports.routes";
 import permissionRoutes from "../modules/permissions/permissions.routes";
+import bodDashboardRoutes from "../modules/BodDashboard/bodDashboard.routes";
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.use("/transactions",transactionsRoutes);
 router.use("/withdrawals", withdrawalRoutes);
 router.use("/reports", reportsRoutes);
 router.use("/permissions", permissionRoutes);
+router.use("/bod-dashboard",bodDashboardRoutes);
 router.use(errorMiddleware);
 
 export default router;

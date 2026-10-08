@@ -23,6 +23,7 @@ import { AgentEditDetails, CheckUniqueInfoParams, CheckUniqueInfoResponse, GetMa
 
 
 
+
 export const getUniqueInfo = async (
   params: CheckUniqueInfoParams
 ): Promise<CheckUniqueInfoResponse> => {
@@ -206,10 +207,10 @@ export const searchBranchs = async (
 
 
 
-
 export const registerAgent = async (
   payload: RegisterAgentApiPayload,
-    profilePhotoPath: string
+  profilePhotoPath: string,
+  governmentIdPath: string
 ) => {
   const agentCode =
     payload.agentQrCode?.trim();
@@ -320,55 +321,58 @@ export const registerAgent = async (
         }
       }
 
-      const agent =
-        await tx.agent.create({
-          data: {
-            agentCode,
+  const agent =
+    await tx.agent.create({
+      data: {
+        agentCode,
 
-            profilePicture:
-              profilePhotoPath,
+        profilePicture:
+          profilePhotoPath,
 
-            username,
+        governmentId:
+          governmentIdPath,
 
-            fullName:
-              payload.agentName
-                .trim()
-                .toLowerCase()
-                .replace(
-                  /\b\w/g,
-                  (character) =>
-                    character.toUpperCase()
-                ),
+        username,
 
-            gender:
-              payload.agentGender,
+        fullName:
+          payload.agentName
+            .trim()
+            .toLowerCase()
+            .replace(
+              /\b\w/g,
+              (character) =>
+                character.toUpperCase()
+            ),
 
-            birthDate:
-              payload.dateBirth,
+        gender:
+          payload.agentGender,
 
-            address:
-              payload.agentAdd,
+        birthDate:
+          payload.dateBirth,
 
-            email:
-              payload.email,
+        address:
+          payload.agentAdd,
 
-            telephone:
-              payload.agentTel,
+        email:
+          payload.email,
 
-            SecondaryTel:
-              payload.agentSecTel,
+        telephone:
+          payload.agentTel,
 
-            status:
-              AgentStatus.PENDING,
+        SecondaryTel:
+          payload.agentSecTel,
 
-            level:
-              payload.selectedAgentLevel as AgentLevel,
+        status:
+          AgentStatus.PENDING,
 
-            parentAgentId:
-              payload.parentAgentId ||
-              null,
-          },
-        });
+        level:
+          payload.selectedAgentLevel as AgentLevel,
+
+        parentAgentId:
+          payload.parentAgentId ||
+          null,
+      },
+    });
 
       await Promise.all([
         tx.agentBranch.create({
@@ -1093,17 +1097,22 @@ export const droppedOrSuspendedAgentService = async (
   });
 };
 
-
 export const getAgentDetails = async (
   agentId: string
 ) => {
-  const currentDate = new Date();
+  const currentDate =
+    new Date();
 
   const currentMonth =
     currentDate.getMonth() + 1;
 
   const currentYear =
     currentDate.getFullYear();
+
+
+  // =====================================================
+  // GET AGENT
+  // =====================================================
 
   const agent =
     await prisma.agent.findUnique({
@@ -1112,9 +1121,10 @@ export const getAgentDetails = async (
       },
 
       include: {
-        /* =========================================
-           PARENT
-        ========================================= */
+        // ===============================================
+        // PARENT
+        // ===============================================
+
         parentAgent: {
           select: {
             id: true,
@@ -1124,16 +1134,17 @@ export const getAgentDetails = async (
           },
         },
 
-        /* =========================================
-           DIRECT DOWNLINES
 
-           L1 -> direct L2 agents
-           L2 -> direct L3 agents
+        // ===============================================
+        // DIRECT DOWNLINES
+        //
+        // L1 -> direct L2
+        // L2 -> direct L3
+        //
+        // Also retrieve nested downlines so an L1 can
+        // receive its indirect L3 descendants.
+        // ===============================================
 
-           Also retrieve each direct downline's
-           downlines so an L1 can receive its L3
-           descendants.
-        ========================================= */
         downlines: {
           select: {
             id: true,
@@ -1150,58 +1161,76 @@ export const getAgentDetails = async (
               },
 
               orderBy: {
-                fullName: "asc",
+                fullName:
+                  "asc",
               },
             },
           },
 
           orderBy: {
-            fullName: "asc",
+            fullName:
+              "asc",
           },
         },
 
-        /* =========================================
-           COMMISSIONS
-        ========================================= */
+
+        // ===============================================
+        // COMMISSIONS
+        // ===============================================
+
         commissionsEarned: {
           include: {
             sourceAgent: {
               select: {
-                fullName: true,
-                level: true,
+                fullName:
+                  true,
+
+                level:
+                  true,
               },
             },
 
-            commissionRule: true,
+            commissionRule:
+              true,
           },
 
           orderBy: {
-            createdAt: "desc",
+            createdAt:
+              "desc",
           },
         },
 
-        /* =========================================
-           CURRENT MAINTENANCE
-        ========================================= */
+
+        // ===============================================
+        // CURRENT MAINTENANCE
+        // ===============================================
+
         maintenanceCycles: {
           where: {
-            cycleMonth: currentMonth,
-            cycleYear: currentYear,
+            cycleMonth:
+              currentMonth,
+
+            cycleYear:
+              currentYear,
           },
 
           orderBy: {
-            createdAt: "desc",
+            createdAt:
+              "desc",
           },
 
           take: 1,
         },
 
-        /* =========================================
-           NOTIFICATIONS
-        ========================================= */
+
+        // ===============================================
+        // NOTIFICATIONS
+        // ===============================================
+
         notifications: {
           orderBy: {
-            createdAt: "desc",
+            createdAt:
+              "desc",
           },
 
           take: 20,
@@ -1209,45 +1238,52 @@ export const getAgentDetails = async (
       },
     });
 
+
   if (!agent) {
-    throw new Error("Agent not found");
+    throw new Error(
+      "Agent not found"
+    );
   }
 
-  /*
-   * Remove the nested `downlines` property from
-   * every direct downline.
-   */
+
+  // =====================================================
+  // DIRECT DOWNLINES
+  // =====================================================
+
   const directDownlines =
     agent.downlines.map(
       ({
-        downlines: nestedDownlines,
+        downlines:
+          _nestedDownlines,
+
         ...downline
-      }) => downline
+      }) =>
+        downline
     );
 
-  /*
-   * Only an L1 agent needs the indirect L3 agents.
-   *
-   * L1
-   * ├── L2
-   * │   ├── L3
-   * │   └── L3
-   * └── L2
-   *     └── L3
-   */
+
+  // =====================================================
+  // INDIRECT L3 DOWNLINES
+  //
+  // Only L1 needs descendants through L2.
+  // =====================================================
+
   const indirectL3Downlines =
     agent.level === "L1"
       ? agent.downlines.flatMap(
-          (level2Agent) =>
-            level2Agent.downlines
+          (
+            level2Agent
+          ) =>
+            level2Agent
+              .downlines
         )
       : [];
 
-  /*
-   * L1 gets L2 + L3.
-   * L2 gets only its direct L3 agents.
-   * L3 normally gets no downlines.
-   */
+
+  // =====================================================
+  // COMBINE
+  // =====================================================
+
   const combinedDownlines =
     agent.level === "L1"
       ? [
@@ -1256,30 +1292,155 @@ export const getAgentDetails = async (
         ]
       : directDownlines;
 
-  /*
-   * Optional protection against duplicate agents.
-   */
-  const uniqueDownlines = Array.from(
+
+  // =====================================================
+  // REMOVE DUPLICATES
+  // =====================================================
+
+  const uniqueDownlines =
+    Array.from(
+      new Map(
+        combinedDownlines.map(
+          (
+            downline
+          ) => [
+            downline.id,
+            downline,
+          ]
+        )
+      ).values()
+    ).sort(
+      (
+        first,
+        second
+      ) =>
+        first.fullName.localeCompare(
+          second.fullName
+        )
+    );
+
+
+  // =====================================================
+  // GET DOWNLINE IDS
+  // =====================================================
+
+  const downlineIds =
+    uniqueDownlines.map(
+      (
+        downline
+      ) =>
+        downline.id
+    );
+
+
+  // =====================================================
+  // DIRECT SALES
+  //
+  // sourceAgentId = agent who made the sale
+  // commissionType = DIRECT
+  //
+  // _count = number of direct sales
+  // _sum.saleAmount = total amount of those sales
+  // =====================================================
+
+  const directSalesGrouped =
+    downlineIds.length > 0
+      ? await prisma
+          .commissionTransaction
+          .groupBy({
+            by: [
+              "sourceAgentId",
+            ],
+
+            where: {
+              sourceAgentId: {
+                in:
+                  downlineIds,
+              },
+
+              commissionType:
+                "DIRECT",
+            },
+
+            _count: {
+              _all:
+                true,
+            },
+
+            _sum: {
+              saleAmount:
+                true,
+            },
+          })
+      : [];
+
+
+  // =====================================================
+  // CREATE LOOKUP MAP
+  // =====================================================
+
+  const directSalesMap =
     new Map(
-      combinedDownlines.map((downline) => [
-        downline.id,
-        downline,
-      ])
-    ).values()
-  ).sort((first, second) =>
-    first.fullName.localeCompare(
-      second.fullName
-    )
-  );
+      directSalesGrouped.map(
+        (
+          row
+        ) => [
+          row.sourceAgentId,
+
+          {
+            count:
+              row._count._all,
+
+            amount:
+              Number(
+                row._sum
+                  .saleAmount ??
+                  0
+              ),
+          },
+        ]
+      )
+    );
+
+
+  // =====================================================
+  // ADD SALES DATA TO EACH DOWNLINE
+  // =====================================================
+
+  const downlinesWithSales =
+    uniqueDownlines.map(
+      (
+        downline
+      ) => {
+        const sales =
+          directSalesMap.get(
+            downline.id
+          );
+
+        return {
+          ...downline,
+
+          directSalesCount:
+            sales?.count ??
+            0,
+
+          directSalesAmount:
+            sales?.amount ??
+            0,
+        };
+      }
+    );
+
+
+  // =====================================================
+  // RESPONSE
+  // =====================================================
 
   return {
     ...agent,
 
-    /*
-     * Override Prisma's nested result with the
-     * flattened response expected by the frontend.
-     */
-    downlines: uniqueDownlines,
+    downlines:
+      downlinesWithSales,
   };
 };
 

@@ -1,4 +1,4 @@
-import { GetUsersParams, GetBranchParams, CreateBranchPayload, GetCompanyParams, CreateCompanyPayload, CompanyActionPayload } from "@repo/shared";
+import { GetUsersParams, GetBranchParams, CreateBranchPayload, GetCompanyParams, CreateCompanyPayload, CompanyActionPayload } from "@repo/shared"
 import prisma from "../../lib/prisma";
 import { Agent } from "http";
 import { AgentLevel, AgentStatus } from "../../../generated/prisma";

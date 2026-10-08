@@ -8,6 +8,7 @@ import {
   Repeat,
   CreditCard,
   TrendingUp,
+  LayoutDashboard,
 } from "lucide-react";
 
 import { MenuSection } from "@repo/shared";
@@ -16,6 +17,12 @@ export const MENU_SECTIONS: MenuSection[] = [
   {
     title: "General",
     items: [
+      {
+        label: "BOD Dashboard",
+        path: "/BodDashboard",
+        icon: LayoutDashboard,
+        permission: "REPORT_VIEW",
+      },
       {
         label: "SSP Operations",
         path: "/",
@@ -41,6 +48,7 @@ export const MENU_SECTIONS: MenuSection[] = [
           },
         ],
       },
+        
       {
         label: "Reports & Analytics",
         path: "/Reports",

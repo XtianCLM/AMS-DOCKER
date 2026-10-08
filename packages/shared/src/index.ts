@@ -19,6 +19,8 @@ export * from "./types/transactions.types";
 export * from "./types/withdrawal.types";
 export * from "./types/reports.types";
 export * from "./types/permission.types";
+export * from "./types/bodDashboard.types";
+
 
 
 // components types

@@ -29,15 +29,9 @@ import {
   createPromotionRecommendationService,
 } from "./agents.service";
 
-import {
-  PromotionPayload,
-  registerAgentApiSchema,
-  registrationAgentSchema,
-  updateAccSchema,
-  updateAdminAccSchema,
-  UpdateAgentDetailsPayload,
-} from "@repo/shared";
+
 import fs from "fs";
+import { PromotionPayload, registerAgentApiSchema, updateAccSchema, updateAdminAccSchema, UpdateAgentDetailsPayload } from "@repo/shared";
 
 export const searchBranchController = 
     async(
@@ -249,12 +243,48 @@ export const registerAgentController =
     res: Response
   ) => {
     try {
-      if (!req.file) {
+      const files =
+        req.files as {
+          [fieldname: string]:
+            Express.Multer.File[];
+        };
+
+
+      const profilePhoto =
+        files?.profilePhoto?.[0];
+
+
+      const governmentId =
+        files?.governmentId?.[0];
+
+
+      // ---------------------------------------------
+      // PROFILE PICTURE REQUIRED
+      // ---------------------------------------------
+
+      if (!profilePhoto) {
         return res.status(400).json({
           message:
             "Profile picture is required.",
         });
       }
+
+
+      // ---------------------------------------------
+      // GOVERNMENT ID REQUIRED
+      // ---------------------------------------------
+
+      if (!governmentId) {
+        return res.status(400).json({
+          message:
+            "Government ID is required.",
+        });
+      }
+
+
+      // ---------------------------------------------
+      // VALIDATE BODY
+      // ---------------------------------------------
 
       const validatedData =
         registerAgentApiSchema.parse({
@@ -284,41 +314,91 @@ export const registerAgentController =
             undefined,
         });
 
+
+      // ---------------------------------------------
+      // FILE PATHS
+      // ---------------------------------------------
+
       const profilePhotoPath =
-        `/uploads/agent-profile/${req.file.filename}`;
+        `/uploads/agent-profile/${profilePhoto.filename}`;
+
+
+      const governmentIdPath =
+        `/uploads/government-id/${governmentId.filename}`;
+
+
+      // ---------------------------------------------
+      // REGISTER
+      // ---------------------------------------------
 
       const result =
         await registerAgent(
           validatedData,
-          profilePhotoPath
+          profilePhotoPath,
+          governmentIdPath
         );
 
-      return res.status(201).json({
-        message:
-          "Agent registered successfully",
-        data: result,
-      });
-    } catch (error: unknown) {
-      if (req.file) {
-        fs.unlink(
-          req.file.path,
-          () => undefined
-        );
-      }
 
-      if (error instanceof Error) {
-        return res.status(400).json({
-          message: error.message,
+      return res
+        .status(201)
+        .json({
+          message:
+            "Agent registered successfully.",
+
+          data:
+            result,
         });
+
+    } catch (error: unknown) {
+
+      // ---------------------------------------------
+      // CLEANUP UPLOADED FILES ON FAILURE
+      // ---------------------------------------------
+
+      const files =
+        req.files as {
+          [fieldname: string]:
+            Express.Multer.File[];
+        } | undefined;
+
+
+      const uploadedFiles = [
+        ...(files?.profilePhoto ?? []),
+        ...(files?.governmentId ?? []),
+      ];
+
+
+      uploadedFiles.forEach(
+        (file) => {
+
+          fs.unlink(
+            file.path,
+            () => undefined
+          );
+        }
+      );
+
+
+      if (
+        error instanceof Error
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              error.message,
+          });
       }
 
-      return res.status(500).json({
-        message:
-          "Failed to register agent",
-      });
+
+      return res
+        .status(500)
+        .json({
+          message:
+            "Failed to register agent.",
+        });
     }
   };
-
 
 export const getAgentTransactionsController =
   async (

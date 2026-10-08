@@ -14,7 +14,7 @@ import {
   useSearchParams,
 } from "next/navigation";
 import TopEarningAgentsTable from "./components/topAgent";
-import { CardSim, Coins, CreditCard, PiggyBank, Wallet } from "lucide-react";
+import { Coins, CreditCard, PiggyBank, Wallet } from "lucide-react";
 import MaintenanceNearExpiryTable from "./components/expireryAgent";
 import { useState } from "react";
 import AgentCommissionReport from "./components/AgentCommissionReport";
