@@ -5,6 +5,8 @@ import {
 import {
   getAgentManagementController,
   getBodDashboardOverviewController,
+  getCommissionPayoutsTrendController,
+  getLoanCommissionTrendController
 } from "./bodDashboard.controller";
 
 
@@ -20,6 +22,16 @@ router.get(
 router.get(
   "/agents",
   getAgentManagementController
+);
+ 
+router.get(
+  "/commission-payouts-trend",
+  getCommissionPayoutsTrendController
+);
+
+router.get(
+  "/loan-commission-trend",
+  getLoanCommissionTrendController
 );
 
 

@@ -2124,3 +2124,134 @@ export const getAgentManagementService =
         ),
     };
   };
+
+
+  
+export const getCommissionPayoutsTrend = async (
+  year: number
+) => {
+  const startDate = new Date(
+    Date.UTC(year, 0, 1)
+  );
+
+  const endDate = new Date(
+    Date.UTC(year + 1, 0, 1)
+  );
+
+  const commissions =
+    await prisma.commissionTransaction.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+      },
+      select: {
+        commissionAmount: true,
+        createdAt: true,
+      },
+    });
+
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  const totals = Array(12).fill(0) as number[];
+
+  for (const commission of commissions) {
+    const month =
+      commission.createdAt.getUTCMonth();
+
+    totals[month] +=
+      Number(commission.commissionAmount);
+  }
+
+  return months.map((month, index) => ({
+    month,
+    payout: Math.round(totals[index] * 100) / 100,
+  }));
+};
+
+
+
+
+
+export const getLoanCommissionTrend = async (
+  year: number
+) => {
+  const startDate = new Date(
+    Date.UTC(year, 0, 1)
+  );
+
+  const endDate = new Date(
+    Date.UTC(year + 1, 0, 1)
+  );
+
+  const transactions =
+    await prisma.commissionTransaction.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+      },
+      select: {
+        commissionScanId: true,
+        saleAmount: true,
+        commissionAmount: true,
+        createdAt: true,
+      },
+    });
+
+  const months = [
+    "Jan", "Feb", "Mar", "Apr",
+    "May", "Jun", "Jul", "Aug",
+    "Sep", "Oct", "Nov", "Dec",
+  ];
+
+  const result = months.map((month) => ({
+    month,
+    loanDisbursementAmount: 0,
+    commissions: 0,
+  }));
+
+  // Prevent counting the same loan sale multiple
+  // times when commissions go to multiple agents.
+  const countedSales = new Set<string>();
+
+  for (const transaction of transactions) {
+    const monthIndex =
+      transaction.createdAt.getUTCMonth();
+
+    const saleKey = transaction.commissionScanId;
+
+    if (!countedSales.has(saleKey)) {
+      result[monthIndex].loanDisbursementAmount +=
+        Number(transaction.saleAmount);
+
+      countedSales.add(saleKey);
+    }
+
+    result[monthIndex].commissions +=
+      Number(transaction.commissionAmount);
+  }
+
+  return result.map((item) => ({
+    ...item,
+    loanDisbursementAmount:
+      Math.round(item.loanDisbursementAmount * 100) / 100,
+    commissions:
+      Math.round(item.commissions * 100) / 100,
+  }));
+};

@@ -20,7 +20,7 @@ import {
   DashboardPeriod,
   ReportType,
 } from "@repo/shared";
-import { useBodDashboardOverview } from "@/hooks/bodDashboard/useBodDashboard";
+import { useBodDashboardOverview, useCommissionPayoutsTrend, useLoanCommissionTrend } from "@/hooks/bodDashboard/useBodDashboard";
 import DashboardMetricCard from "./components/DashboardMetricCard";
 import AgentStatusChart from "./components/AgentStatusChart";
 import AgentLevelChart from "./components/AgentLevelChart";
@@ -29,6 +29,8 @@ import AgentManagement from "./components/AgentManagement";
 import AgentCommissionReport from "../Reports/components/AgentCommissionReport";
 import BranchCommissionReport from "../Reports/components/BranchCommissionReport";
 import { defaultEndPeriod, defaultStartPeriod } from "../Reports/helper/dateFormat.helper";
+import CommissionPayoutsTrend from "./components/CommissionPayoutTrend";
+import LoanDisbursementCommissionChart from "./components/LoanDisbursementCommissionChart";
 
 
 
@@ -54,6 +56,9 @@ const companies = [
     label: "PSPMI",
   },
 ];
+
+
+
 
 
 const branches = [
@@ -506,6 +511,18 @@ export default function BodDashboard() {
     filters
   );
 
+  const year = new Date().getFullYear();
+
+  const {
+    data: commissionPayoutData,
+    isLoading: isCommissionPayoutLoading,
+  } = useCommissionPayoutsTrend(year);
+
+  // Loan Disbursements vs Commission Payouts
+  const {
+    data: loanCommissionData,
+    isLoading: isLoanCommissionLoading,
+  } = useLoanCommissionTrend(year);
 
 
 
@@ -1732,9 +1749,27 @@ export default function BodDashboard() {
                 .agentLevelDistribution
             }
           />
-        </section>
-      )}
 
+        </section>
+    
+        
+      )}
+            
+      <div className="
+        mt-custom-32
+        flex flex-col
+        gap-y-custom-32
+        ">
+        <CommissionPayoutsTrend
+          data={commissionPayoutData ?? []}
+          isLoading={isCommissionPayoutLoading}
+        />
+
+        <LoanDisbursementCommissionChart
+          data={loanCommissionData ?? []}
+          isLoading={isLoanCommissionLoading}
+        />
+      </div>
 
     
 

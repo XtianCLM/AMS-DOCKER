@@ -12,6 +12,8 @@ import {
 import {
   getAgentManagementService,
   getBodDashboardOverview,
+  getCommissionPayoutsTrend,
+  getLoanCommissionTrend,
 } from "./bodDashboard.service";
 
 
@@ -216,5 +218,73 @@ export const getAgentManagementController =
               ? error.message
               : "Unable to load agents.",
         });
+    }
+  };
+
+
+
+
+  export const getCommissionPayoutsTrendController =
+  async (req: Request, res: Response) => {
+    try {
+      const year = Number(
+        req.query.year ?? new Date().getFullYear()
+      );
+
+      if (
+        !Number.isInteger(year) ||
+        year < 2000 ||
+        year > 2100
+      ) {
+        return res.status(400).json({
+          message: "Invalid year.",
+        });
+      }
+
+      const data =
+        await getCommissionPayoutsTrend(year);
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error(
+        "Commission trend error:",
+        error
+      );
+
+      return res.status(500).json({
+        message: "Failed to retrieve commission trend.",
+      });
+    }
+  };
+
+
+
+  export const getLoanCommissionTrendController =
+  async (req: Request, res: Response) => {
+    try {
+      const year = Number(
+        req.query.year ?? new Date().getFullYear()
+      );
+
+      if (
+        !Number.isInteger(year) ||
+        year < 2000 ||
+        year > 2100
+      ) {
+        return res.status(400).json({
+          message: "Invalid year.",
+        });
+      }
+
+      const data =
+        await getLoanCommissionTrend(year);
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).json({
+        message: "Failed to load chart.",
+      });
     }
   };

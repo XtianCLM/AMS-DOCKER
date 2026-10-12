@@ -1,3 +1,5 @@
+import { CommissionPayoutData } from "@/app/(AMS)/BodDashboard/components/CommissionPayoutTrend";
+import { LoanCommissionChartData } from "@/app/(AMS)/BodDashboard/components/LoanDisbursementCommissionChart";
 import api from "@/lib/axios";
 
 import {
@@ -78,4 +80,32 @@ export const getAgentManagementService =
       );
 
     return res.data;
+  };
+
+
+  export const getCommissionPayoutsTrendService =
+  async (year: number): Promise<CommissionPayoutData[]> => {
+    const response = await api.get(
+      "/bod-dashboard/commission-payouts-trend",
+      {
+        params: { year },
+      }
+    );
+
+    return response.data;
+  };
+
+
+export const getLoanCommissionTrendService =
+  async (year: number) => {
+    const response = await api.get<
+      LoanCommissionChartData[]
+    >(
+      "/bod-dashboard/loan-commission-trend",
+      {
+        params: { year },
+      }
+    );
+
+    return response.data;
   };
