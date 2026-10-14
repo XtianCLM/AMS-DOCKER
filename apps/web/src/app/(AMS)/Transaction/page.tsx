@@ -11,6 +11,7 @@ import { socket } from "@/lib/socket";
 import { AdminWithdrawalRequest, AdminReactivationWithdrawSocketPayload } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Inspect } from "lucide-react";
+import Image from "next/image";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import QRCode from "react-qr-code";
@@ -780,44 +781,140 @@ export default function Transaction() {
                                     </h3>
                                 </div>
                             </div>
-                            <div className="bg-neutralLight rounded-xl p-custom-16 flex justify-center items-center flex-col gap-custom-8">
-                                <p className="text-xs text-neutralPrimary">
-                                        Commission Receipt
-                                </p>
-                                {receiptImgUrl ? (
-                                <img
-                                    src={receiptImgUrl}
-                                    alt={`${selectedWithdraw.accountName ?? "Agent"} profile`}
+                            <div
+                            className="
+                                w-full
+                                rounded-xl
+                                border
+                                border-neutralMed
+                                bg-white
+                                p-custom-24
+                            "
+                            >
+                            <div
+                                className="
+                                mb-custom-16
+                                flex
+                                flex-col
+                                sm:flex-row
+                                sm:items-center
+                                sm:justify-between
+                                gap-custom-16
+                                "
+                            >
+                                <div>
+                                <h2
                                     className="
-                                    h-32
-                                    w-32
-                                    rounded-md
-                                    border
-                                    border-neutralMed
-                                    object-cover
+                                    text-mdHeader
+                                    font-bold
+                                    text-mainPrimary
                                     "
-                                />
-                                ) : (
-                                <div
+                                >
+                                    Commission Receipt
+                                </h2>
+
+                                <p
                                     className="
-                                    flex
-                                    h-32
-                                    w-32
-                                    items-center
-                                    justify-center
-                                    rounded-md
-                                    bg-neutralMed
-                                    text-center
+                                    mt-1
                                     text-sm
                                     text-neutralPrimary
                                     "
                                 >
-                                    No Receipt 
-                                    <br />
-                                    Submitted
+                                    Transaction receipt submitted
+                                    for this direct commission.
+                                </p>
                                 </div>
-                                )}
 
+                                {receiptImgUrl && (
+                                <a
+                                    href={receiptImgUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="
+                                    inline-flex
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    bg-mainPrimary
+                                    px-custom-16
+                                    py-custom-8
+                                    text-sm
+                                    font-semibold
+                                    text-white
+                                    transition
+                                    hover:bg-lightPrimary
+                                    "
+                                >
+                                    View Full Image
+                                </a>
+                                )}
+                            </div>
+
+                            {receiptImgUrl ? (
+                                <div
+                                className="
+                                    flex
+                                    min-h-64
+                                    w-full
+                                    items-center
+                                    justify-center
+                                    overflow-hidden
+                                    rounded-lg
+                                    border
+                                    border-neutralMed
+                                    bg-neutralLight
+                                    p-custom-16
+                                "
+                                >
+                                <Image
+                                    src={receiptImgUrl}
+                                    alt={`Commission receipt - ${
+                                    selectedWithdraw.accountName ??
+                                    "Agent"
+                                    }`}
+                                    width={900}
+                                    height={600}
+                                    unoptimized
+                                  
+                                    className="
+                                    h-auto
+                                    max-h-96
+                                    w-auto
+                                    max-w-full
+                                    rounded-lg
+                                    object-contain
+                                    "
+                                />
+                                </div>
+                            ) : (
+                                <div
+                                className="
+                                    flex
+                                    min-h-48
+                                    w-full
+                                    flex-col
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    border
+                                    border-dashed
+                                    border-neutralMed
+                                    bg-neutralLight
+                                    text-center
+                                    gap-custom-8
+                                "
+                                >
+                                <p
+                                    className="
+                                    text-sm
+                                    font-medium
+                                    text-neutralPrimary
+                                    "
+                                >
+                                   No commission receipt submitted.
+                                </p>
+                                </div>
+                            )}
                             </div>
 
 

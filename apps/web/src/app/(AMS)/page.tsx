@@ -648,6 +648,9 @@ export default function ClientsPage() {
 
           <thead className="bg-white text-tertiaryHeader">
             <tr className="text-neutralPrimary">
+              <th className="text-left px-custom-24 py-5 font-semibold">
+                Client ID
+              </th>
 
               <th className="text-left px-custom-24 py-5 font-semibold">
                 Client Name
@@ -695,6 +698,12 @@ export default function ClientsPage() {
                   key={index}
                   className="text-neutralPrimary text-body odd:bg-neutralLight"
                 >
+
+                  <td className="text-left px-6 py-4 font-semibold">
+                    {
+                      client.sourceClientId
+                    }
+                  </td>
                   <td className="text-left px-6 py-4 font-semibold">
                     {
                       client.clientName

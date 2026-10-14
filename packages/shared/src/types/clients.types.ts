@@ -17,6 +17,7 @@ export interface Client {
   loanAmount: number;
   clientStatus: string;
   createdAt: string;
+  sourceClientId: number;
 }
 
 export interface GetClientsResponse {
